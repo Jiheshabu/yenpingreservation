@@ -96,43 +96,62 @@
         ];
 
         // --- 工具元件：Icon ---
-        // 修正：適應 Lucide 新版 CDN API (v0.4+)，改用 createIcons 方法，解決 toSvg is not a function 錯誤
         const Icon = ({ name, size = 16, className = "" }) => {
             const iconRef = useRef(null);
             
             useEffect(() => {
                 if (window.lucide && iconRef.current) {
-                    // 將 PascalCase (如 ArrowRight) 轉為 kebab-case (如 arrow-right) 以符合 data-lucide 格式
                     const kebabName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-                    
-                    // 建立一個暫時的 i 標籤供 lucide 轉換
                     const i = document.createElement('i');
                     i.setAttribute('data-lucide', kebabName);
-                    
-                    // 清空容器並放入 i 標籤
                     iconRef.current.innerHTML = '';
                     iconRef.current.appendChild(i);
-                    
-                    // 呼叫 lucide 轉換
                     window.lucide.createIcons({
                         root: iconRef.current,
                         nameAttr: 'data-lucide',
                         attrs: {
                             width: size,
                             height: size,
-                            // 注意：class 改由外層 span 控制，這裡不傳入避免重複或衝突
                         }
                     });
                 }
             }, [name, size]);
 
-            // 將 className 應用在最外層 span，確保 margin/position 等樣式正確運作
             return (
                 <span 
                     ref={iconRef} 
                     className={`inline-flex items-center justify-center ${className}`} 
                     style={{ width: size, height: size }}
                 />
+            );
+        };
+
+        // --- 工具元件：Modal ---
+        const Modal = ({ isOpen, title, content, onConfirm, onCancel, confirmText = "確認", cancelText = "取消", type = "danger" }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in p-4">
+                    <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-all scale-100">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
+                        <p className="text-gray-500 mb-6 text-sm leading-relaxed">{content}</p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={onCancel}
+                                className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition"
+                            >
+                                {cancelText}
+                            </button>
+                            <button 
+                                onClick={onConfirm}
+                                className={`flex-1 py-2.5 rounded-lg text-white font-bold shadow-md transition
+                                    ${type === 'danger' ? 'bg-red-500 hover:bg-red-600' : 'bg-brand-blue hover:bg-blue-900'}
+                                `}
+                            >
+                                {confirmText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             );
         };
 
@@ -165,10 +184,12 @@
         const generateTimeSlots = (type) => {
             const slots = [];
             if (type === 'lunch') {
-                for (let m = timeToMinutes("11:30"); m <= timeToMinutes("14:00"); m += 10) {
+                // 午餐：11:30 - 14:00，間隔 15 分鐘
+                for (let m = timeToMinutes("11:30"); m <= timeToMinutes("14:00"); m += 15) {
                     slots.push(minutesToTime(m));
                 }
             } else {
+                // 晚餐：17:00 - 21:00，間隔 15 分鐘
                 for (let m = timeToMinutes("17:00"); m <= timeToMinutes("21:00"); m += 15) {
                     slots.push(minutesToTime(m));
                 }
@@ -218,6 +239,16 @@
             const [view, setView] = useState('customer'); 
             const [bookings, setBookings] = useState([]);
             
+            const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', content: '', onConfirm: () => {} });
+
+            const showModal = (config) => {
+                setModalConfig({ ...config, isOpen: true });
+            };
+
+            const closeModal = () => {
+                setModalConfig(prev => ({ ...prev, isOpen: false }));
+            };
+
             useEffect(() => {
                 const saved = localStorage.getItem('hotpot_bookings');
                 if (saved) setBookings(JSON.parse(saved));
@@ -254,12 +285,23 @@
                             <button onClick={() => setView(view === 'admin' ? 'admin' : 'login')} className={`pb-1 transition ${view === 'admin' || view === 'login' ? 'text-white border-b-2 border-brand-gold' : 'hover:text-gray-200'}`}>店長專區</button>
                         </div>
 
-                        {view === 'customer' && <CustomerView bookings={bookings} onBook={saveBookings} />}
+                        {view === 'customer' && <CustomerView bookings={bookings} onBook={saveBookings} showModal={showModal} />}
                         {view === 'login' && <LoginView onSuccess={() => setView('admin')} />}
-                        {view === 'admin' && <AdminView bookings={bookings} onUpdate={saveBookings} onLogout={() => setView('login')} />}
+                        {view === 'admin' && <AdminView bookings={bookings} onUpdate={saveBookings} onLogout={() => setView('login')} showModal={showModal} />}
                     </div>
                     
-                    {/* 背景裝飾 */}
+                    <Modal 
+                        isOpen={modalConfig.isOpen}
+                        title={modalConfig.title}
+                        content={modalConfig.content}
+                        onConfirm={() => {
+                            modalConfig.onConfirm();
+                            closeModal();
+                        }}
+                        onCancel={closeModal}
+                        type={modalConfig.type}
+                    />
+
                     <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden bg-brand-blue">
                         <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-blue-500 rounded-full blur-[100px] opacity-20"></div>
                         <div className="absolute bottom-[-10%] left-[-10%] w-72 h-72 bg-brand-gold rounded-full blur-[100px] opacity-10"></div>
@@ -268,7 +310,7 @@
             );
         };
 
-        const CustomerView = ({ bookings, onBook }) => {
+        const CustomerView = ({ bookings, onBook, showModal }) => {
             const dates = useMemo(() => getAvailableDates(), []);
             const [step, setStep] = useState(1);
             
@@ -277,7 +319,8 @@
             const [sessionType, setSessionType] = useState('lunch');
             const [selectedTime, setSelectedTime] = useState(null);
             
-            const [formData, setFormData] = useState({ name: '', phone: '', note: '' });
+            // 加入 gender 預設值
+            const [formData, setFormData] = useState({ name: '', gender: '先生', phone: '', note: '' });
             const [errors, setErrors] = useState({});
             const [finalBooking, setFinalBooking] = useState(null);
 
@@ -303,8 +346,13 @@
 
                 const tableInfo = findAvailableTable(selectedDate, selectedTime, pax, bookings);
                 if (!tableInfo) {
-                    alert("哎呀！該時段剛好被訂走了，請重新選擇時段。");
-                    setStep(1);
+                    showModal({
+                        title: "訂位失敗",
+                        content: "哎呀！該時段剛好被訂走了，請重新選擇時段。",
+                        onConfirm: () => setStep(1),
+                        confirmText: "好的",
+                        type: 'info'
+                    });
                     return;
                 }
 
@@ -388,6 +436,7 @@
                                 {timeSlots.map(time => {
                                     const available = findAvailableTable(selectedDate, time, pax, bookings);
                                     const isSelected = selectedTime === time;
+                                    // 晚場判斷：午餐 >= 13:30 或 晚餐 >= 20:30
                                     const isLate = (sessionType === 'lunch' && time >= "13:30") || (sessionType === 'dinner' && time >= "20:30");
 
                                     if (!available) return null;
@@ -406,7 +455,7 @@
                                             {time}
                                             {isLate && isSelected && (
                                                 <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap shadow-md z-20">
-                                                    即將打烊
+                                                    注意: 用餐時間不足90分鐘
                                                 </span>
                                             )}
                                         </button>
@@ -458,7 +507,7 @@
                             {((sessionType === 'lunch' && selectedTime >= "13:30") || (sessionType === 'dinner' && selectedTime >= "20:30")) && (
                                 <div className="mt-3 pt-3 border-t border-blue-200 text-red-600 text-xs flex items-start gap-1">
                                     <div className="mt-0.5"><Icon name="AlertCircle" size={14} /></div>
-                                    提醒您：營業時間 {sessionType === 'lunch' ? '15:00' : '22:00'} 結束，用餐時間可能較短。
+                                    提醒您：營業時間 {sessionType === 'lunch' ? '15:00' : '22:00'} 結束，用餐時間只到營業時間結束（不足90分鐘）。
                                 </div>
                             )}
                         </div>
@@ -466,16 +515,34 @@
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-1">訂位大名</label>
-                                <div className="relative">
-                                    <input 
-                                        type="text" 
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                        className={`w-full border rounded-lg py-2.5 pl-10 pr-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
-                                        placeholder="請輸入您的稱呼"
-                                    />
-                                    <div className="absolute left-3 top-3 text-gray-400">
-                                        <Icon name="User" size={16} />
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <input 
+                                            type="text" 
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            className={`w-full border rounded-lg py-2.5 pl-10 pr-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                                            placeholder="您的稱呼"
+                                        />
+                                        <div className="absolute left-3 top-3 text-gray-400">
+                                            <Icon name="User" size={16} />
+                                        </div>
+                                    </div>
+                                    <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200">
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({...formData, gender: '先生'})}
+                                            className={`px-3 rounded-md text-sm font-medium transition ${formData.gender === '先生' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        >
+                                            先生
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({...formData, gender: '小姐'})}
+                                            className={`px-3 rounded-md text-sm font-medium transition ${formData.gender === '小姐' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        >
+                                            小姐
+                                        </button>
                                     </div>
                                 </div>
                                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -529,7 +596,7 @@
                             <div className="space-y-4">
                                 <div className="flex items-start">
                                     <span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="User" size={12}/> 訂位人</span>
-                                    <span className="font-bold text-gray-800">{finalBooking.name}</span>
+                                    <span className="font-bold text-gray-800">{finalBooking.name} {finalBooking.gender}</span>
                                 </div>
                                 <div className="flex items-start">
                                     <span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="Phone" size={12}/> 電話</span>
@@ -563,7 +630,7 @@
                             onClick={() => {
                                 setStep(1);
                                 setFinalBooking(null);
-                                setFormData({ name: '', phone: '', note: '' });
+                                setFormData({ name: '', gender: '先生', phone: '', note: '' });
                             }}
                             className="text-brand-blue font-bold hover:underline flex items-center justify-center gap-1 mx-auto"
                         >
@@ -577,10 +644,12 @@
 
         const LoginView = ({ onSuccess }) => {
             const [pwd, setPwd] = useState('');
+            const [error, setError] = useState(''); // 取代 alert
+            
             const handleLogin = (e) => {
                 e.preventDefault();
                 if (pwd === ADMIN_PASSWORD) onSuccess();
-                else alert("密碼錯誤");
+                else setError("密碼錯誤，請重新輸入");
             };
             return (
                 <div className="glass-panel rounded-2xl p-8 shadow-xl max-w-sm mx-auto mt-10 animate-fade-in">
@@ -591,24 +660,25 @@
                     <form onSubmit={handleLogin}>
                         <input 
                             type="password" 
-                            className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-center text-gray-900 focus:ring-2 focus:ring-brand-blue focus:outline-none"
+                            className={`w-full border rounded-lg p-3 mb-2 text-center text-gray-900 focus:ring-2 focus:outline-none ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-brand-blue'}`}
                             placeholder="請輸入密碼"
                             value={pwd}
-                            onChange={e => setPwd(e.target.value)}
+                            onChange={e => {
+                                setPwd(e.target.value);
+                                setError('');
+                            }}
                         />
-                        <button className="w-full bg-brand-blue text-white py-3 rounded-lg font-bold shadow-md hover:bg-blue-900 transition">登入</button>
+                        {error && <p className="text-red-500 text-xs text-center mb-4">{error}</p>}
+                        <button className="w-full bg-brand-blue text-white py-3 rounded-lg font-bold shadow-md hover:bg-blue-900 transition mt-2">登入</button>
                     </form>
                 </div>
             );
         };
 
-        const AdminView = ({ bookings, onUpdate, onLogout }) => {
-            // 修改預設日期邏輯：如果有訂單，預設顯示最後一筆訂單的日期，否則顯示今天
-            // 這樣測試時，剛訂完明天，進去後台就會直接顯示明天
+        const AdminView = ({ bookings, onUpdate, onLogout, showModal }) => {
             const [filterDate, setFilterDate] = useState(() => {
                 const today = new Date().toISOString().split('T')[0];
                 if (bookings.length > 0) {
-                    // 取得最近建立的一筆訂單的日期
                     return bookings[bookings.length - 1].date;
                 }
                 return today;
@@ -628,15 +698,6 @@
                     b.id === id ? { ...b, arrived: !b.arrived } : b
                 );
                 onUpdate(newBookings);
-            };
-
-            const cancelBooking = (id) => {
-                if(confirm('確定要取消此訂位嗎？')) {
-                    const newBookings = bookings.map(b => 
-                        b.id === id ? { ...b, status: 'cancelled' } : b
-                    );
-                    onUpdate(newBookings);
-                }
             };
 
             return (
@@ -685,7 +746,7 @@
                                                 <span className="text-sm font-bold text-brand-gold border border-brand-gold px-1.5 rounded bg-yellow-50">{b.tableId}</span>
                                             </div>
                                             <div className="font-bold text-gray-800 flex items-center gap-2">
-                                                {b.name} 
+                                                {b.name} {b.gender}
                                                 <span className="text-xs font-normal text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">{b.pax}人</span>
                                             </div>
                                             <a href={`tel:${b.phone}`} className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 mt-1">
@@ -706,12 +767,6 @@
                                                     ${b.arrived ? 'bg-green-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-green-500 hover:text-white'}`}
                                             >
                                                 {b.arrived ? <><Icon name="Check" size={12}/> 已到</> : '確認報到'}
-                                            </button>
-                                            <button 
-                                                onClick={() => cancelBooking(b.id)}
-                                                className="px-3 py-1.5 text-xs rounded-md font-bold bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition w-20"
-                                            >
-                                                取消
                                             </button>
                                         </div>
                                     </div>
