@@ -338,7 +338,7 @@
                                         <select 
                                             value={selectedDate} 
                                             onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="w-full bg-brand-light border border-gray-200 rounded-lg py-2.5 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none"
+                                            className="w-full bg-brand-light border border-gray-200 rounded-lg py-2.5 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none"
                                         >
                                             {dates.map(d => <option key={d.value} value={d.value}>{d.display}</option>)}
                                         </select>
@@ -471,7 +471,7 @@
                                         type="text" 
                                         value={formData.name}
                                         onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                        className={`w-full border rounded-lg py-2.5 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                                        className={`w-full border rounded-lg py-2.5 pl-10 pr-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
                                         placeholder="請輸入您的稱呼"
                                     />
                                     <div className="absolute left-3 top-3 text-gray-400">
@@ -487,7 +487,7 @@
                                         type="tel" 
                                         value={formData.phone}
                                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                        className={`w-full border rounded-lg py-2.5 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
+                                        className={`w-full border rounded-lg py-2.5 pl-10 pr-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
                                         placeholder="09xxxxxxxx"
                                     />
                                     <div className="absolute left-3 top-3 text-gray-400">
@@ -501,7 +501,7 @@
                                 <textarea 
                                     value={formData.note}
                                     onChange={(e) => setFormData({...formData, note: e.target.value})}
-                                    className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-brand-blue h-20 resize-none"
+                                    className="w-full border border-gray-300 rounded-lg py-2 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue h-20 resize-none"
                                     placeholder="例如：需要兒童椅、過敏食材等"
                                 ></textarea>
                             </div>
@@ -591,7 +591,7 @@
                     <form onSubmit={handleLogin}>
                         <input 
                             type="password" 
-                            className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-center focus:ring-2 focus:ring-brand-blue focus:outline-none"
+                            className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-center text-gray-900 focus:ring-2 focus:ring-brand-blue focus:outline-none"
                             placeholder="請輸入密碼"
                             value={pwd}
                             onChange={e => setPwd(e.target.value)}
@@ -603,7 +603,17 @@
         };
 
         const AdminView = ({ bookings, onUpdate, onLogout }) => {
-            const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+            // 修改預設日期邏輯：如果有訂單，預設顯示最後一筆訂單的日期，否則顯示今天
+            // 這樣測試時，剛訂完明天，進去後台就會直接顯示明天
+            const [filterDate, setFilterDate] = useState(() => {
+                const today = new Date().toISOString().split('T')[0];
+                if (bookings.length > 0) {
+                    // 取得最近建立的一筆訂單的日期
+                    return bookings[bookings.length - 1].date;
+                }
+                return today;
+            });
+
             const uniqueDates = Array.from(new Set([
                 ...getAvailableDates().map(d => d.value),
                 ...bookings.map(b => b.date)
@@ -648,7 +658,7 @@
                         <select 
                             value={filterDate} 
                             onChange={(e) => setFilterDate(e.target.value)}
-                            className="w-full bg-white border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                            className="w-full bg-white border border-gray-300 rounded p-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-blue"
                         >
                             {uniqueDates.map(d => (
                                 <option key={d} value={d}>{d}</option>
