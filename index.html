@@ -225,6 +225,28 @@
             return null;
         };
 
+        // 檢查特定桌位是否被佔用 (用於還原訂單)
+        const isTableOccupied = (date, timeStr, parts, existingBookings) => {
+            const reqStart = timeToMinutes(timeStr);
+            const reqEnd = reqStart + TOTAL_DURATION;
+
+            const conflictBookings = existingBookings.filter(b => {
+                if (b.date !== date || b.status === 'cancelled') return false;
+                const bStart = timeToMinutes(b.time);
+                const bEnd = bStart + TOTAL_DURATION;
+                return reqStart < bEnd && reqEnd > bStart;
+            });
+
+            for (let b of conflictBookings) {
+                if (Array.isArray(b.assignedParts)) {
+                    for (let p of b.assignedParts) {
+                        if (parts.includes(p)) return true; // 只要有一個部分被佔用，就視為衝突
+                    }
+                }
+            }
+            return false;
+        };
+
         // 格式化桌號顯示 (處理內/外)
         const formatTableDisplay = (booking) => {
             if (!booking.assignedParts) return booking.tableId;
@@ -262,6 +284,7 @@
                     <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-wide drop-shadow-md">{STORE_NAME}</h1>
                     <div className="text-gray-300 text-sm md:text-base space-y-2">
                         <p>本系統開放隔日至7日內、4人以下之訂位</p>
+                        <p className="font-bold text-brand-gold">※ 用餐時間為 90 分鐘 ※</p>
                         <div className="flex items-center justify-center gap-2">
                             <span>如有其他需求敬請來電洽詢：</span>
                             <a href={`tel:${PHONE_NUMBER.replace(/-/g, '')}`} className="text-brand-gold font-bold hover:text-white flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full transition border border-white/10 hover:bg-brand-gold hover:border-brand-gold">
@@ -400,7 +423,8 @@
                         <div className="bg-blue-50/80 p-4 rounded-lg mb-6 text-sm text-brand-blue border border-blue-100">
                             <div className="flex justify-between mb-2"><span className="text-gray-500">日期</span><span className="font-bold">{selectedDate}</span></div>
                             <div className="flex justify-between mb-2"><span className="text-gray-500">時間</span><span className="font-bold text-lg">{selectedTime}</span></div>
-                            <div className="flex justify-between"><span className="text-gray-500">人數</span><span className="font-bold">{pax} 位</span></div>
+                            <div className="flex justify-between mb-2"><span className="text-gray-500">人數</span><span className="font-bold">{pax} 位</span></div>
+                            <div className="flex justify-between"><span className="text-gray-500">用餐時限</span><span className="font-bold">90 分鐘</span></div>
                             {((sessionType === 'lunch' && selectedTime >= "13:30") || (sessionType === 'dinner' && selectedTime >= "20:30")) && <div className="mt-3 pt-3 border-t border-blue-200 text-red-600 text-xs flex items-start gap-1"><div className="mt-0.5"><Icon name="AlertCircle" size={14} /></div> 提醒您：營業時間 {sessionType === 'lunch' ? '15:00' : '22:00'} 結束，用餐時間只到營業時間結束（不足90分鐘）。</div>}
                         </div>
                         <form onSubmit={handleSubmit} className="space-y-4">
@@ -711,7 +735,7 @@
             }, [todayStr]);
 
             const filteredBookings = bookings
-                .filter(b => b.date === filterDate && b.status !== 'cancelled')
+                .filter(b => b.date === filterDate) // Remove status filter to show cancelled
                 .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
 
             const toggleArrived = (id) => {
@@ -719,6 +743,55 @@
                     b.id === id ? { ...b, arrived: !b.arrived } : b
                 );
                 onUpdate(newBookings);
+            };
+
+            const cancelBooking = (id) => {
+                showModal({
+                    title: "取消確認",
+                    content: "您確定要取消此筆訂位嗎？取消後桌號將被釋放。",
+                    onConfirm: () => {
+                        const newBookings = bookings.map(b => 
+                            b.id === id ? { ...b, status: 'cancelled' } : b
+                        );
+                        onUpdate(newBookings);
+                        closeModal();
+                    },
+                    confirmText: "確認取消",
+                    cancelText: "保留",
+                    type: 'danger'
+                });
+            };
+
+            const restoreBooking = (id) => {
+                const bookingToRestore = bookings.find(b => b.id === id);
+                if (!bookingToRestore) return;
+
+                // Check availability
+                if (isTableOccupied(bookingToRestore.date, bookingToRestore.time, bookingToRestore.assignedParts || [], bookings)) {
+                    showModal({
+                        title: "還原失敗",
+                        content: "該時段的桌位已被佔用，無法還原此訂位。",
+                        onConfirm: () => closeModal(),
+                        confirmText: "了解",
+                        type: 'info'
+                    });
+                    return;
+                }
+
+                showModal({
+                    title: "還原確認",
+                    content: "確認要還原此筆訂位嗎？",
+                    onConfirm: () => {
+                        const newBookings = bookings.map(b => 
+                            b.id === id ? { ...b, status: 'confirmed' } : b
+                        );
+                        onUpdate(newBookings);
+                        closeModal();
+                    },
+                    confirmText: "確認還原",
+                    cancelText: "取消",
+                    type: 'danger' // Use danger style for emphasis, or standard blue
+                });
             };
             
             // 開啟手動訂位 Modal
@@ -769,28 +842,39 @@
                                 <p>該日期尚無訂位</p>
                             </div>
                         ) : (
-                            filteredBookings.map(b => (
-                                <div key={b.id} className={`bg-white border-l-4 rounded shadow-sm p-3 relative transition-all ${b.arrived ? 'border-green-500 bg-green-50' : 'border-brand-blue'}`}>
+                            filteredBookings.map(b => {
+                                const isCancelled = b.status === 'cancelled';
+                                return (
+                                <div key={b.id} className={`bg-white border-l-4 rounded shadow-sm p-3 relative transition-all ${isCancelled ? 'border-gray-400 bg-gray-100 opacity-60' : b.arrived ? 'border-green-500 bg-green-50' : 'border-brand-blue'}`}>
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-xl font-bold text-brand-blue font-mono">{b.time}</span>
-                                                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${b.type === 'lunch' ? 'bg-orange-100 text-orange-700' : 'bg-indigo-100 text-indigo-700'}`}>{b.type === 'lunch' ? '午' : '晚'}</span>
-                                                <span className="text-sm font-bold text-brand-gold border border-brand-gold px-1.5 rounded bg-yellow-50">{formatTableDisplay(b)}</span>
+                                                <span className={`text-xl font-bold font-mono ${isCancelled ? 'text-gray-500 line-through' : 'text-brand-blue'}`}>{b.time}</span>
+                                                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${isCancelled ? 'bg-gray-200 text-gray-600' : b.type === 'lunch' ? 'bg-orange-100 text-orange-700' : 'bg-indigo-100 text-indigo-700'}`}>{b.type === 'lunch' ? '午' : '晚'}</span>
+                                                <span className={`text-sm font-bold border px-1.5 rounded ${isCancelled ? 'text-gray-500 border-gray-400 bg-gray-200' : 'text-brand-gold border-brand-gold bg-yellow-50'}`}>{formatTableDisplay(b)}</span>
+                                                {isCancelled && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">已取消</span>}
                                             </div>
-                                            <div className="font-bold text-gray-800 flex items-center gap-2">
+                                            <div className={`font-bold flex items-center gap-2 ${isCancelled ? 'text-gray-500' : 'text-gray-800'}`}>
                                                 {b.name} {b.gender}
                                                 <span className="text-xs font-normal text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">{b.pax}人</span>
                                             </div>
-                                            <a href={`tel:${b.phone}`} className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 mt-1"><Icon name="Phone" size={12} /> {b.phone}</a>
+                                            <a href={isCancelled ? undefined : `tel:${b.phone}`} className={`text-sm flex items-center gap-1 mt-1 ${isCancelled ? 'text-gray-400 cursor-default' : 'text-gray-500 hover:text-blue-600'}`}><Icon name="Phone" size={12} /> {b.phone}</a>
                                             {b.note && <div className="text-xs text-gray-600 bg-gray-100 p-1.5 mt-2 rounded border border-gray-200 flex items-start gap-1"><span className="mt-0.5"><Icon name="MessageSquare" size={10} /></span> {b.note}</div>}
                                         </div>
                                         <div className="flex flex-col gap-2 ml-3">
-                                            <button onClick={() => toggleArrived(b.id)} className={`px-3 py-1.5 text-xs rounded-md font-bold transition flex items-center justify-center gap-1 w-20 ${b.arrived ? 'bg-green-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-green-500 hover:text-white'}`}>{b.arrived ? <><Icon name="Check" size={12}/> 已到</> : '確認報到'}</button>
+                                            {!isCancelled ? (
+                                                <>
+                                                    <button onClick={() => toggleArrived(b.id)} className={`px-3 py-1.5 text-xs rounded-md font-bold transition flex items-center justify-center gap-1 w-20 ${b.arrived ? 'bg-green-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-green-500 hover:text-white'}`}>{b.arrived ? <><Icon name="Check" size={12}/> 已到</> : '確認報到'}</button>
+                                                    <button onClick={() => cancelBooking(b.id)} className="px-3 py-1.5 text-xs rounded-md font-bold bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition w-20">取消</button>
+                                                </>
+                                            ) : (
+                                                <button onClick={() => restoreBooking(b.id)} className="px-3 py-1.5 text-xs rounded-md font-bold bg-blue-50 text-blue-500 hover:bg-blue-600 hover:text-white transition w-20 flex items-center justify-center gap-1"><Icon name="RotateCcw" size={12}/> 還原</button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>
