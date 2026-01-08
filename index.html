@@ -86,11 +86,24 @@
         const ADMIN_PASSWORD = "8888";
         const TOTAL_DURATION = 100; 
         
-        // 桌位定義
+        // 桌位定義：A區與B區
         const TABLES = [
-            { id: '1', name: '桌號1', parts: ['1A', '1B'] },
-            { id: '2', name: '桌號2', parts: ['2A', '2B'] },
-            { id: '3', name: '桌號3', parts: ['3A', '3B'] }
+            // A區
+            { id: 'A1', name: 'A1', parts: ['A1_In', 'A1_Out'] },
+            { id: 'A2', name: 'A2', parts: ['A2_In', 'A2_Out'] },
+            { id: 'A3', name: 'A3', parts: ['A3_In', 'A3_Out'] },
+            { id: 'A5', name: 'A5', parts: ['A5_In', 'A5_Out'] },
+            { id: 'A6', name: 'A6', parts: ['A6_In', 'A6_Out'] },
+            { id: 'A7', name: 'A7', parts: ['A7_In', 'A7_Out'] },
+            { id: 'A8', name: 'A8', parts: ['A8_In', 'A8_Out'] },
+            { id: 'A9', name: 'A9', parts: ['A9_In', 'A9_Out'] },
+            // B區
+            { id: 'B1', name: 'B1', parts: ['B1_In', 'B1_Out'] },
+            { id: 'B2', name: 'B2', parts: ['B2_In', 'B2_Out'] },
+            { id: 'B3', name: 'B3', parts: ['B3_In', 'B3_Out'] },
+            { id: 'B5', name: 'B5', parts: ['B5_In', 'B5_Out'] },
+            { id: 'B6', name: 'B6', parts: ['B6_In', 'B6_Out'] },
+            { id: 'B7', name: 'B7', parts: ['B7_In', 'B7_Out'] },
         ];
 
         // --- 工具元件：Icon ---
@@ -219,12 +232,10 @@
             // 如果是拆桌 (只佔用了一個部分)
             if (booking.assignedParts.length === 1) {
                 const part = booking.assignedParts[0];
-                // 假設 tableId 是 "桌號1", part 是 "1A" 或 "1B"
-                const tableNum = booking.tableId.replace('桌號', '');
-                const suffix = part.endsWith('A') ? '內' : '外';
-                return `${tableNum}${suffix}`; // 顯示 "1內" 或 "1外"
+                if (part.endsWith('_In')) return booking.tableId + '內';
+                if (part.endsWith('_Out')) return booking.tableId + '外';
             }
-            return booking.tableId; // 顯示 "桌號1"
+            return booking.tableId; 
         };
 
         // --- 主元件 ---
@@ -464,11 +475,12 @@
         };
 
         // --- 手動訂位 Modal 內容 ---
-        const ManualBookingForm = ({ onConfirm, onCancel, dates, generateTimeSlots, findAvailableTable, bookings }) => {
+        const ManualBookingForm = ({ onConfirm, onCancel, dates, generateTimeSlots, bookings }) => {
             const [date, setDate] = useState(dates[0].value);
             const [session, setSession] = useState('lunch');
             const [time, setTime] = useState('');
             const [pax, setPax] = useState(2);
+            const [selectedTableValues, setSelectedTableValues] = useState([]); // Changed to array for multi-select
             const [name, setName] = useState('');
             const [phone, setPhone] = useState('');
             const [note, setNote] = useState('');
@@ -476,39 +488,117 @@
 
             const timeSlots = generateTimeSlots(session);
             
-            // 檢查空位
-            const checkAvailability = () => {
-                if (!time) return false;
-                return findAvailableTable(date, time, pax, bookings);
+            // 取得所有可用桌位選項
+            const tableOptions = useMemo(() => {
+                if (!date || !time) return [];
+                
+                // 計算衝突
+                const reqStart = timeToMinutes(time);
+                const reqEnd = reqStart + TOTAL_DURATION;
+                const conflictBookings = bookings.filter(b => {
+                    if (b.date !== date || b.status === 'cancelled') return false;
+                    const bStart = timeToMinutes(b.time);
+                    const bEnd = bStart + TOTAL_DURATION;
+                    return reqStart < bEnd && reqEnd > bStart;
+                });
+                
+                const occupiedParts = new Set();
+                conflictBookings.forEach(b => {
+                    if (Array.isArray(b.assignedParts)) {
+                        b.assignedParts.forEach(p => occupiedParts.add(p));
+                    }
+                });
+
+                const options = [];
+                TABLES.forEach(t => {
+                    // 整桌選項
+                    const isFullOccupied = occupiedParts.has(t.parts[0]) || occupiedParts.has(t.parts[1]);
+                    options.push({
+                        label: `${t.name} (整桌)`,
+                        value: JSON.stringify({ tableId: t.name, parts: t.parts }),
+                        disabled: isFullOccupied
+                    });
+                    
+                    // 分桌選項 - A (內)
+                    const isAOccupied = occupiedParts.has(t.parts[0]);
+                    options.push({
+                        label: `${t.name} (內)`,
+                        value: JSON.stringify({ tableId: t.name, parts: [t.parts[0]] }),
+                        disabled: isAOccupied
+                    });
+                    
+                    // 分桌選項 - B (外)
+                    const isBOccupied = occupiedParts.has(t.parts[1]);
+                    options.push({
+                        label: `${t.name} (外)`,
+                        value: JSON.stringify({ tableId: t.name, parts: [t.parts[1]] }),
+                        disabled: isBOccupied
+                    });
+                });
+                
+                return options;
+            }, [date, time, bookings]);
+
+            // 重置 table 選擇當時間改變
+            useEffect(() => {
+                setSelectedTableValues([]);
+            }, [date, time]);
+
+            // 根據選中的部分建構顯示名稱
+            const constructDisplayTableId = (allPartsSet) => {
+                const labels = [];
+                TABLES.forEach(table => {
+                    const hasA = allPartsSet.has(table.parts[0]);
+                    const hasB = allPartsSet.has(table.parts[1]);
+                    
+                    if (hasA && hasB) {
+                        labels.push(table.name);
+                    } else if (hasA) {
+                        labels.push(table.name + "內");
+                    } else if (hasB) {
+                        labels.push(table.name + "外");
+                    }
+                });
+                return labels.join("、");
+            };
+
+            const getBookingData = (isBlock = false) => {
+                if (!time) { setError('請選擇時間'); return null; }
+                if (selectedTableValues.length === 0) { setError('請選擇至少一個桌號'); return null; }
+                if (!isBlock && !name.trim()) { setError('請輸入姓名或註記'); return null; }
+                
+                const allParts = new Set();
+                let combinedTableId = "";
+
+                selectedTableValues.forEach(val => {
+                    const obj = JSON.parse(val);
+                    obj.parts.forEach(p => allParts.add(p));
+                });
+                
+                combinedTableId = constructDisplayTableId(allParts);
+
+                return {
+                    id: Date.now().toString(),
+                    date, time, pax, type: session,
+                    name: isBlock ? '已鎖定 (現場保留)' : name, 
+                    phone: isBlock ? '-' : (phone || '-'), 
+                    note: isBlock ? '後台鎖桌' : note, 
+                    gender: '',
+                    tableId: combinedTableId, 
+                    assignedParts: Array.from(allParts),
+                    status: 'confirmed', 
+                    createdAt: new Date().toISOString()
+                };
             };
 
             const handleSubmit = () => {
-                if (!time) { setError('請選擇時間'); return; }
-                const tableInfo = findAvailableTable(date, time, pax, bookings);
-                if (!tableInfo) { setError('該時段已無空位'); return; }
-                if (!name.trim()) { setError('請輸入姓名或註記'); return; }
-
-                onConfirm({
-                    id: Date.now().toString(),
-                    date, time, pax, type: session,
-                    name, phone: phone || '-', note, gender: '',
-                    tableId: tableInfo.tableId, assignedParts: tableInfo.parts,
-                    status: 'confirmed', createdAt: new Date().toISOString()
-                });
+                const booking = getBookingData(false);
+                if (booking) onConfirm(booking);
             };
 
             const handleQuickBlock = () => {
-                if (!time) { setError('請選擇時間'); return; }
-                const tableInfo = findAvailableTable(date, time, pax, bookings);
-                if (!tableInfo) { setError('該時段已無空位'); return; }
-                
-                onConfirm({
-                    id: Date.now().toString(),
-                    date, time, pax, type: session,
-                    name: '已鎖定 (現場保留)', phone: '-', note: '後台鎖桌', gender: '',
-                    tableId: tableInfo.tableId, assignedParts: tableInfo.parts,
-                    status: 'confirmed', createdAt: new Date().toISOString()
-                });
+                const booking = getBookingData(true);
+                if (booking) onConfirm(booking);
             };
 
             return (
@@ -539,8 +629,39 @@
                         <div>
                             <label className="text-xs font-bold text-gray-500 block mb-1">人數</label>
                             <select value={pax} onChange={e => setPax(Number(e.target.value))} className="w-full border rounded p-2 text-sm text-gray-900">
-                                {[1,2,3,4].map(n => <option key={n} value={n}>{n} 人</option>)}
+                                {Array.from({length: 20}, (_, i) => i + 1).map(n => (
+                                    <option key={n} value={n}>{n} 人</option>
+                                ))}
                             </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 block mb-1">指定桌號 (可複選)</label>
+                        <div className={`border rounded p-2 h-32 overflow-y-auto bg-white ${!time ? 'bg-gray-50' : ''}`}>
+                            {time ? tableOptions.map((opt, idx) => (
+                                <label key={idx} className={`flex items-center space-x-2 p-1.5 rounded hover:bg-gray-50 mb-1 ${opt.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                                    <input 
+                                        type="checkbox" 
+                                        value={opt.value}
+                                        checked={selectedTableValues.includes(opt.value)}
+                                        onChange={() => {
+                                            if (opt.disabled) return;
+                                            if (selectedTableValues.includes(opt.value)) {
+                                                setSelectedTableValues(prev => prev.filter(v => v !== opt.value));
+                                            } else {
+                                                setSelectedTableValues(prev => [...prev, opt.value]);
+                                            }
+                                            setError('');
+                                        }}
+                                        disabled={opt.disabled}
+                                        className="rounded text-brand-blue focus:ring-brand-blue w-4 h-4"
+                                    />
+                                    <span className="text-sm text-gray-900 font-medium">
+                                        {opt.label} {opt.disabled ? <span className="text-red-400 text-xs ml-1">(已佔用)</span> : ''}
+                                    </span>
+                                </label>
+                            )) : <div className="text-gray-400 text-sm text-center py-4">請先選擇時間以查看空桌</div>}
                         </div>
                     </div>
 
@@ -608,7 +729,6 @@
                         <ManualBookingForm 
                             dates={getDates(true)}
                             generateTimeSlots={generateTimeSlots}
-                            findAvailableTable={findAvailableTable}
                             bookings={bookings}
                             onCancel={closeModal}
                             onConfirm={(newBooking) => {
