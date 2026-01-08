@@ -8,7 +8,7 @@
     <!-- 1. 載入 Tailwind CSS 核心 -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. 設定 Tailwind 主題顏色 (確保樣式穩定) -->
+    <!-- 2. 設定 Tailwind 主題顏色 -->
     <script>
         tailwind.config = {
             theme: {
@@ -49,7 +49,6 @@
             font-family: 'Noto Sans TC', sans-serif; 
             background-color: #0F2849;
             color: #333;
-            /* 強制背景填滿 */
             min-height: 100vh;
             margin: 0;
             padding: 0;
@@ -61,7 +60,6 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* 隱藏捲軸但保留功能 */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -72,7 +70,6 @@
     </style>
 </head>
 <body>
-    <!-- React 掛載點，預設顯示載入中 -->
     <div id="root" class="flex h-screen w-full items-center justify-center text-white">
         <div class="text-center">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-gold mx-auto mb-4"></div>
@@ -87,8 +84,9 @@
         const STORE_NAME = "極禾鍋物職人-北市延平店";
         const PHONE_NUMBER = "02-28166658";
         const ADMIN_PASSWORD = "8888";
-        const TOTAL_DURATION = 100; // 90 min dining + 10 min cleaning
+        const TOTAL_DURATION = 100; 
         
+        // 桌位定義
         const TABLES = [
             { id: '1', name: '桌號1', parts: ['1A', '1B'] },
             { id: '2', name: '桌號2', parts: ['2A', '2B'] },
@@ -98,7 +96,6 @@
         // --- 工具元件：Icon ---
         const Icon = ({ name, size = 16, className = "" }) => {
             const iconRef = useRef(null);
-            
             useEffect(() => {
                 if (window.lucide && iconRef.current) {
                     const kebabName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
@@ -109,57 +106,43 @@
                     window.lucide.createIcons({
                         root: iconRef.current,
                         nameAttr: 'data-lucide',
-                        attrs: {
-                            width: size,
-                            height: size,
-                        }
+                        attrs: { width: size, height: size }
                     });
                 }
             }, [name, size]);
-
-            return (
-                <span 
-                    ref={iconRef} 
-                    className={`inline-flex items-center justify-center ${className}`} 
-                    style={{ width: size, height: size }}
-                />
-            );
+            return <span ref={iconRef} className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }} />;
         };
 
         // --- 工具元件：Modal ---
-        const Modal = ({ isOpen, title, content, onConfirm, onCancel, confirmText = "確認", cancelText = "取消", type = "danger" }) => {
+        const Modal = ({ isOpen, title, content, onConfirm, onCancel, confirmText = "確認", cancelText = "取消", type = "danger", customContent = null }) => {
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in p-4">
-                    <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-all scale-100">
+                    <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
                         <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-                        <p className="text-gray-500 mb-6 text-sm leading-relaxed">{content}</p>
-                        <div className="flex gap-3">
-                            <button 
-                                onClick={onCancel}
-                                className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition"
-                            >
-                                {cancelText}
-                            </button>
-                            <button 
-                                onClick={onConfirm}
-                                className={`flex-1 py-2.5 rounded-lg text-white font-bold shadow-md transition
-                                    ${type === 'danger' ? 'bg-red-500 hover:bg-red-600' : 'bg-brand-blue hover:bg-blue-900'}
-                                `}
-                            >
-                                {confirmText}
-                            </button>
-                        </div>
+                        {customContent ? customContent : <p className="text-gray-500 mb-6 text-sm leading-relaxed">{content}</p>}
+                        
+                        {!customContent && (
+                            <div className="flex gap-3 mt-4">
+                                {onCancel && (
+                                    <button onClick={onCancel} className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition">{cancelText}</button>
+                                )}
+                                <button onClick={onConfirm} className={`flex-1 py-2.5 rounded-lg text-white font-bold shadow-md transition ${type === 'danger' ? 'bg-red-500 hover:bg-red-600' : 'bg-brand-blue hover:bg-blue-900'}`}>{confirmText}</button>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
         };
 
         // --- 工具函式 ---
-        const getAvailableDates = () => {
+        const getDates = (includePast = false) => {
             const dates = [];
             const today = new Date();
-            for (let i = 1; i <= 7; i++) {
+            // 如果是後台(includePast=true)，顯示今天及未來7天。如果是前台，顯示明天起7天
+            const startDay = includePast ? 0 : 1; 
+            
+            for (let i = startDay; i <= 7; i++) {
                 const d = new Date(today);
                 d.setDate(today.getDate() + i);
                 dates.push({
@@ -184,20 +167,15 @@
         const generateTimeSlots = (type) => {
             const slots = [];
             if (type === 'lunch') {
-                // 午餐：11:30 - 14:00，間隔 15 分鐘
-                for (let m = timeToMinutes("11:30"); m <= timeToMinutes("14:00"); m += 15) {
-                    slots.push(minutesToTime(m));
-                }
+                for (let m = timeToMinutes("11:30"); m <= timeToMinutes("14:00"); m += 15) slots.push(minutesToTime(m));
             } else {
-                // 晚餐：17:00 - 21:00，間隔 15 分鐘
-                for (let m = timeToMinutes("17:00"); m <= timeToMinutes("21:00"); m += 15) {
-                    slots.push(minutesToTime(m));
-                }
+                for (let m = timeToMinutes("17:00"); m <= timeToMinutes("21:00"); m += 15) slots.push(minutesToTime(m));
             }
             return slots;
         };
 
         const findAvailableTable = (date, timeStr, pax, existingBookings) => {
+            if (!date || !timeStr) return null;
             const reqStart = timeToMinutes(timeStr);
             const reqEnd = reqStart + TOTAL_DURATION;
 
@@ -234,20 +212,29 @@
             return null;
         };
 
+        // 格式化桌號顯示 (處理內/外)
+        const formatTableDisplay = (booking) => {
+            if (!booking.assignedParts) return booking.tableId;
+            
+            // 如果是拆桌 (只佔用了一個部分)
+            if (booking.assignedParts.length === 1) {
+                const part = booking.assignedParts[0];
+                // 假設 tableId 是 "桌號1", part 是 "1A" 或 "1B"
+                const tableNum = booking.tableId.replace('桌號', '');
+                const suffix = part.endsWith('A') ? '內' : '外';
+                return `${tableNum}${suffix}`; // 顯示 "1內" 或 "1外"
+            }
+            return booking.tableId; // 顯示 "桌號1"
+        };
+
         // --- 主元件 ---
         const App = () => {
             const [view, setView] = useState('customer'); 
             const [bookings, setBookings] = useState([]);
-            
-            const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', content: '', onConfirm: () => {} });
+            const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', content: '' });
 
-            const showModal = (config) => {
-                setModalConfig({ ...config, isOpen: true });
-            };
-
-            const closeModal = () => {
-                setModalConfig(prev => ({ ...prev, isOpen: false }));
-            };
+            const showModal = (config) => setModalConfig({ ...config, isOpen: true });
+            const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
 
             useEffect(() => {
                 const saved = localStorage.getItem('hotpot_bookings');
@@ -266,10 +253,8 @@
                         <p>本系統開放隔日至7日內、4人以下之訂位</p>
                         <div className="flex items-center justify-center gap-2">
                             <span>如有其他需求敬請來電洽詢：</span>
-                            <a href={`tel:${PHONE_NUMBER.replace(/-/g, '')}`} 
-                               className="text-brand-gold font-bold hover:text-white flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full transition border border-white/10 hover:bg-brand-gold hover:border-brand-gold">
-                                <Icon name="Phone" size={14} />
-                                {PHONE_NUMBER}
+                            <a href={`tel:${PHONE_NUMBER.replace(/-/g, '')}`} className="text-brand-gold font-bold hover:text-white flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full transition border border-white/10 hover:bg-brand-gold hover:border-brand-gold">
+                                <Icon name="Phone" size={14} /> {PHONE_NUMBER}
                             </a>
                         </div>
                     </div>
@@ -287,20 +272,10 @@
 
                         {view === 'customer' && <CustomerView bookings={bookings} onBook={saveBookings} showModal={showModal} />}
                         {view === 'login' && <LoginView onSuccess={() => setView('admin')} />}
-                        {view === 'admin' && <AdminView bookings={bookings} onUpdate={saveBookings} onLogout={() => setView('login')} showModal={showModal} />}
+                        {view === 'admin' && <AdminView bookings={bookings} onUpdate={saveBookings} onLogout={() => setView('login')} showModal={showModal} closeModal={closeModal} />}
                     </div>
                     
-                    <Modal 
-                        isOpen={modalConfig.isOpen}
-                        title={modalConfig.title}
-                        content={modalConfig.content}
-                        onConfirm={() => {
-                            modalConfig.onConfirm();
-                            closeModal();
-                        }}
-                        onCancel={closeModal}
-                        type={modalConfig.type}
-                    />
+                    <Modal {...modalConfig} onCancel={closeModal} />
 
                     <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden bg-brand-blue">
                         <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-blue-500 rounded-full blur-[100px] opacity-20"></div>
@@ -311,62 +286,43 @@
         };
 
         const CustomerView = ({ bookings, onBook, showModal }) => {
-            const dates = useMemo(() => getAvailableDates(), []);
+            const dates = useMemo(() => getDates(false), []);
             const [step, setStep] = useState(1);
-            
             const [selectedDate, setSelectedDate] = useState(dates[0].value);
             const [pax, setPax] = useState(2);
             const [sessionType, setSessionType] = useState('lunch');
             const [selectedTime, setSelectedTime] = useState(null);
-            
-            // 加入 gender 預設值
             const [formData, setFormData] = useState({ name: '', gender: '先生', phone: '', note: '' });
             const [errors, setErrors] = useState({});
             const [finalBooking, setFinalBooking] = useState(null);
 
             useEffect(() => { setSelectedTime(null); }, [selectedDate, pax, sessionType]);
-
             const timeSlots = useMemo(() => generateTimeSlots(sessionType), [sessionType]);
 
-            const validatePhone = (phone) => {
-                const cleanPhone = phone.replace(/[-\s]/g, '');
-                return /^09\d{8}$/.test(cleanPhone);
-            };
+            const validatePhone = (phone) => /^09\d{8}$/.test(phone.replace(/[-\s]/g, ''));
 
             const handleSubmit = (e) => {
                 e.preventDefault();
                 const newErrors = {};
                 if (!formData.name.trim()) newErrors.name = "請輸入姓名";
                 if (!validatePhone(formData.phone)) newErrors.phone = "手機格式錯誤 (需為09開頭共10碼)";
-                
-                if (Object.keys(newErrors).length > 0) {
-                    setErrors(newErrors);
-                    return;
-                }
+                if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
                 const tableInfo = findAvailableTable(selectedDate, selectedTime, pax, bookings);
                 if (!tableInfo) {
                     showModal({
-                        title: "訂位失敗",
-                        content: "哎呀！該時段剛好被訂走了，請重新選擇時段。",
-                        onConfirm: () => setStep(1),
-                        confirmText: "好的",
-                        type: 'info'
+                        title: "訂位失敗", content: "哎呀！該時段剛好被訂走了，請重新選擇時段。",
+                        onConfirm: () => setStep(1), confirmText: "好的", type: 'info'
                     });
                     return;
                 }
 
                 const newBooking = {
                     id: Date.now().toString(),
-                    date: selectedDate,
-                    time: selectedTime,
-                    pax: pax,
-                    type: sessionType,
+                    date: selectedDate, time: selectedTime, pax: pax, type: sessionType,
                     ...formData,
-                    tableId: tableInfo.tableId,
-                    assignedParts: tableInfo.parts,
-                    status: 'confirmed',
-                    createdAt: new Date().toISOString()
+                    tableId: tableInfo.tableId, assignedParts: tableInfo.parts,
+                    status: 'confirmed', createdAt: new Date().toISOString()
                 };
 
                 onBook([...bookings, newBooking]);
@@ -383,96 +339,43 @@
                                 <div>
                                     <label className="block text-gray-700 text-sm font-bold mb-2">用餐日期</label>
                                     <div className="relative">
-                                        <select 
-                                            value={selectedDate} 
-                                            onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="w-full bg-brand-light border border-gray-200 rounded-lg py-2.5 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none"
-                                        >
+                                        <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full bg-brand-light border border-gray-200 rounded-lg py-2.5 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none">
                                             {dates.map(d => <option key={d.value} value={d.value}>{d.display}</option>)}
                                         </select>
-                                        <div className="absolute right-3 top-3 pointer-events-none text-gray-500">
-                                            <Icon name="Calendar" size={16} />
-                                        </div>
+                                        <div className="absolute right-3 top-3 pointer-events-none text-gray-500"><Icon name="Calendar" size={16} /></div>
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-gray-700 text-sm font-bold mb-2">人數 (4人以下)</label>
                                     <div className="flex bg-brand-light rounded-lg border border-gray-200 overflow-hidden">
                                         {[1, 2, 3, 4].map(n => (
-                                            <button 
-                                                key={n}
-                                                onClick={() => setPax(n)}
-                                                className={`flex-1 py-2 text-sm font-medium transition ${pax === n ? 'bg-brand-blue text-white' : 'text-gray-600 hover:bg-gray-200'}`}
-                                            >
-                                                {n}
-                                            </button>
+                                            <button key={n} onClick={() => setPax(n)} className={`flex-1 py-2 text-sm font-medium transition ${pax === n ? 'bg-brand-blue text-white' : 'text-gray-600 hover:bg-gray-200'}`}>{n}</button>
                                         ))}
                                     </div>
                                 </div>
                             </div>
-
                             <div>
                                 <div className="flex border-b-2 border-gray-200">
-                                    <button 
-                                        onClick={() => setSessionType('lunch')} 
-                                        className={`flex-1 pb-2 text-center font-bold transition ${sessionType === 'lunch' ? 'text-brand-blue border-b-2 border-brand-blue -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
-                                    >
-                                        午餐時段
-                                    </button>
-                                    <button 
-                                        onClick={() => setSessionType('dinner')} 
-                                        className={`flex-1 pb-2 text-center font-bold transition ${sessionType === 'dinner' ? 'text-brand-blue border-b-2 border-brand-blue -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
-                                    >
-                                        晚餐時段
-                                    </button>
+                                    <button onClick={() => setSessionType('lunch')} className={`flex-1 pb-2 text-center font-bold transition ${sessionType === 'lunch' ? 'text-brand-blue border-b-2 border-brand-blue -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}>午餐時段</button>
+                                    <button onClick={() => setSessionType('dinner')} className={`flex-1 pb-2 text-center font-bold transition ${sessionType === 'dinner' ? 'text-brand-blue border-b-2 border-brand-blue -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}>晚餐時段</button>
                                 </div>
-                                <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center gap-1">
-                                    <Icon name="Clock" size={12} />
-                                    {sessionType === 'lunch' ? '營業時間至 15:00' : '營業時間至 22:00'}
-                                </div>
+                                <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center gap-1"><Icon name="Clock" size={12} /> {sessionType === 'lunch' ? '營業時間至 15:00' : '營業時間至 22:00'}</div>
                             </div>
-
                             <div className="grid grid-cols-4 gap-2">
                                 {timeSlots.map(time => {
                                     const available = findAvailableTable(selectedDate, time, pax, bookings);
                                     const isSelected = selectedTime === time;
-                                    // 晚場判斷：午餐 >= 13:30 或 晚餐 >= 20:30
                                     const isLate = (sessionType === 'lunch' && time >= "13:30") || (sessionType === 'dinner' && time >= "20:30");
-
                                     if (!available) return null;
-
                                     return (
-                                        <button
-                                            key={time}
-                                            onClick={() => setSelectedTime(time)}
-                                            className={`relative py-2.5 rounded-lg text-sm font-bold transition border
-                                                ${isSelected 
-                                                    ? 'bg-brand-gold text-white border-brand-gold shadow-md scale-105 z-10' 
-                                                    : 'bg-white text-gray-700 border-gray-200 hover:border-brand-gold hover:text-brand-gold'
-                                                }
-                                            `}
-                                        >
+                                        <button key={time} onClick={() => setSelectedTime(time)} className={`relative py-2.5 rounded-lg text-sm font-bold transition border ${isSelected ? 'bg-brand-gold text-white border-brand-gold shadow-md scale-105 z-10' : 'bg-white text-gray-700 border-gray-200 hover:border-brand-gold hover:text-brand-gold'}`}>
                                             {time}
-                                            {isLate && isSelected && (
-                                                <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap shadow-md z-20">
-                                                    注意: 用餐時間不足90分鐘
-                                                </span>
-                                            )}
+                                            {isLate && isSelected && <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap shadow-md z-20">注意: 用餐時間不足90分鐘</span>}
                                         </button>
                                     );
                                 })}
                             </div>
-
-                            <button 
-                                disabled={!selectedTime}
-                                onClick={() => setStep(2)}
-                                className={`w-full py-3.5 rounded-xl font-bold text-lg shadow-lg transition flex items-center justify-center gap-2
-                                    ${selectedTime ? 'bg-brand-blue text-white hover:bg-blue-900 transform active:scale-95' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}
-                                `}
-                            >
-                                下一步：填寫資料
-                                <Icon name="ArrowRight" size={20} />
-                            </button>
+                            <button disabled={!selectedTime} onClick={() => setStep(2)} className={`w-full py-3.5 rounded-xl font-bold text-lg shadow-lg transition flex items-center justify-center gap-2 ${selectedTime ? 'bg-brand-blue text-white hover:bg-blue-900 transform active:scale-95' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>下一步：填寫資料 <Icon name="ArrowRight" size={20} /></button>
                         </div>
                     </div>
                 );
@@ -481,68 +384,25 @@
             if (step === 2) {
                 return (
                     <div className="glass-panel rounded-2xl p-6 shadow-xl animate-fade-in">
-                        <button onClick={() => setStep(1)} className="text-gray-500 mb-4 flex items-center gap-1 hover:text-brand-blue transition text-sm">
-                            <Icon name="ArrowLeft" size={16} />
-                            返回選擇時段
-                        </button>
-                        
-                        <h2 className="text-xl font-bold text-brand-blue mb-4 flex items-center gap-2">
-                            <Icon name="ClipboardList" size={20} />
-                            確認訂位資訊
-                        </h2>
-                        
+                        <button onClick={() => setStep(1)} className="text-gray-500 mb-4 flex items-center gap-1 hover:text-brand-blue transition text-sm"><Icon name="ArrowLeft" size={16} /> 返回選擇時段</button>
+                        <h2 className="text-xl font-bold text-brand-blue mb-4 flex items-center gap-2"><Icon name="ClipboardList" size={20} /> 確認訂位資訊</h2>
                         <div className="bg-blue-50/80 p-4 rounded-lg mb-6 text-sm text-brand-blue border border-blue-100">
-                            <div className="flex justify-between mb-2">
-                                <span className="text-gray-500">日期</span>
-                                <span className="font-bold">{selectedDate}</span>
-                            </div>
-                            <div className="flex justify-between mb-2">
-                                <span className="text-gray-500">時間</span>
-                                <span className="font-bold text-lg">{selectedTime}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">人數</span>
-                                <span className="font-bold">{pax} 位</span>
-                            </div>
-                            {((sessionType === 'lunch' && selectedTime >= "13:30") || (sessionType === 'dinner' && selectedTime >= "20:30")) && (
-                                <div className="mt-3 pt-3 border-t border-blue-200 text-red-600 text-xs flex items-start gap-1">
-                                    <div className="mt-0.5"><Icon name="AlertCircle" size={14} /></div>
-                                    提醒您：營業時間 {sessionType === 'lunch' ? '15:00' : '22:00'} 結束，用餐時間只到營業時間結束（不足90分鐘）。
-                                </div>
-                            )}
+                            <div className="flex justify-between mb-2"><span className="text-gray-500">日期</span><span className="font-bold">{selectedDate}</span></div>
+                            <div className="flex justify-between mb-2"><span className="text-gray-500">時間</span><span className="font-bold text-lg">{selectedTime}</span></div>
+                            <div className="flex justify-between"><span className="text-gray-500">人數</span><span className="font-bold">{pax} 位</span></div>
+                            {((sessionType === 'lunch' && selectedTime >= "13:30") || (sessionType === 'dinner' && selectedTime >= "20:30")) && <div className="mt-3 pt-3 border-t border-blue-200 text-red-600 text-xs flex items-start gap-1"><div className="mt-0.5"><Icon name="AlertCircle" size={14} /></div> 提醒您：營業時間 {sessionType === 'lunch' ? '15:00' : '22:00'} 結束，用餐時間只到營業時間結束（不足90分鐘）。</div>}
                         </div>
-
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-1">訂位大名</label>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
-                                        <input 
-                                            type="text" 
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                            className={`w-full border rounded-lg py-2.5 pl-10 pr-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
-                                            placeholder="您的稱呼"
-                                        />
-                                        <div className="absolute left-3 top-3 text-gray-400">
-                                            <Icon name="User" size={16} />
-                                        </div>
+                                        <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className={`w-full border rounded-lg py-2.5 pl-10 pr-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.name ? 'border-red-500' : 'border-gray-300'}`} placeholder="您的稱呼" />
+                                        <div className="absolute left-3 top-3 text-gray-400"><Icon name="User" size={16} /></div>
                                     </div>
                                     <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200">
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData({...formData, gender: '先生'})}
-                                            className={`px-3 rounded-md text-sm font-medium transition ${formData.gender === '先生' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                        >
-                                            先生
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData({...formData, gender: '小姐'})}
-                                            className={`px-3 rounded-md text-sm font-medium transition ${formData.gender === '小姐' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                        >
-                                            小姐
-                                        </button>
+                                        <button type="button" onClick={() => setFormData({...formData, gender: '先生'})} className={`px-3 rounded-md text-sm font-medium transition ${formData.gender === '先生' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>先生</button>
+                                        <button type="button" onClick={() => setFormData({...formData, gender: '小姐'})} className={`px-3 rounded-md text-sm font-medium transition ${formData.gender === '小姐' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>小姐</button>
                                     </div>
                                 </div>
                                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -550,93 +410,38 @@
                             <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-1">手機號碼</label>
                                 <div className="relative">
-                                    <input 
-                                        type="tel" 
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                        className={`w-full border rounded-lg py-2.5 pl-10 pr-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
-                                        placeholder="09xxxxxxxx"
-                                    />
-                                    <div className="absolute left-3 top-3 text-gray-400">
-                                        <Icon name="Smartphone" size={16} />
-                                    </div>
+                                    <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className={`w-full border rounded-lg py-2.5 pl-10 pr-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue ${errors.phone ? 'border-red-500' : 'border-gray-300'}`} placeholder="09xxxxxxxx" />
+                                    <div className="absolute left-3 top-3 text-gray-400"><Icon name="Smartphone" size={16} /></div>
                                 </div>
                                 {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                             </div>
                             <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-1">備註 (選填)</label>
-                                <textarea 
-                                    value={formData.note}
-                                    onChange={(e) => setFormData({...formData, note: e.target.value})}
-                                    className="w-full border border-gray-300 rounded-lg py-2 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue h-20 resize-none"
-                                    placeholder="例如：需要兒童椅、過敏食材等"
-                                ></textarea>
+                                <textarea value={formData.note} onChange={(e) => setFormData({...formData, note: e.target.value})} className="w-full border border-gray-300 rounded-lg py-2 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue h-20 resize-none" placeholder="例如：需要兒童椅、過敏食材等"></textarea>
                             </div>
-                            
-                            <button type="submit" className="w-full bg-brand-blue text-white py-3.5 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-900 transition mt-2 flex items-center justify-center gap-2">
-                                <Icon name="CheckCircle" size={20} />
-                                確認送出訂位
-                            </button>
+                            <button type="submit" className="w-full bg-brand-blue text-white py-3.5 rounded-xl font-bold text-lg shadow-lg hover:bg-blue-900 transition mt-2 flex items-center justify-center gap-2"><Icon name="CheckCircle" size={20} /> 確認送出訂位</button>
                         </form>
                     </div>
                 );
             }
-
             if (step === 3 && finalBooking) {
                 return (
                     <div className="glass-panel rounded-2xl p-8 shadow-xl text-center animate-fade-in">
-                        <div className="w-16 h-16 bg-brand-gold rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg animate-bounce">
-                            <Icon name="Check" size={32} />
-                        </div>
+                        <div className="w-16 h-16 bg-brand-gold rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg animate-bounce"><Icon name="Check" size={32} /></div>
                         <h2 className="text-2xl font-bold text-brand-blue mb-2">訂位成功！</h2>
                         <p className="text-gray-600 mb-6 text-sm">感謝您的預約，我們期待您的光臨。</p>
-                        
                         <div className="bg-white border-2 border-brand-gold border-dashed rounded-lg p-6 mb-6 text-left relative overflow-hidden shadow-sm">
                             <div className="absolute top-0 right-0 bg-brand-gold text-white text-xs px-2 py-1 rounded-bl font-bold">已確認</div>
                             <div className="space-y-4">
-                                <div className="flex items-start">
-                                    <span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="User" size={12}/> 訂位人</span>
-                                    <span className="font-bold text-gray-800">{finalBooking.name} {finalBooking.gender}</span>
-                                </div>
-                                <div className="flex items-start">
-                                    <span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="Phone" size={12}/> 電話</span>
-                                    <span className="font-bold text-gray-800 tracking-wide">{finalBooking.phone}</span>
-                                </div>
-                                <div className="flex items-start">
-                                    <span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="Clock" size={12}/> 時間</span>
-                                    <span className="font-bold text-brand-gold text-lg">
-                                        {finalBooking.date} {finalBooking.time}
-                                    </span>
-                                </div>
-                                <div className="flex items-start">
-                                    <span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="Users" size={12}/> 人數</span>
-                                    <span className="font-bold text-gray-800">{finalBooking.pax} 位</span>
-                                </div>
-                                {finalBooking.note && (
-                                    <div className="flex items-start bg-gray-50 p-2 rounded">
-                                        <span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="MessageSquare" size={12}/> 備註</span>
-                                        <span className="text-gray-800 text-sm">{finalBooking.note}</span>
-                                    </div>
-                                )}
+                                <div className="flex items-start"><span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="User" size={12}/> 訂位人</span><span className="font-bold text-gray-800">{finalBooking.name} {finalBooking.gender}</span></div>
+                                <div className="flex items-start"><span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="Phone" size={12}/> 電話</span><span className="font-bold text-gray-800 tracking-wide">{finalBooking.phone}</span></div>
+                                <div className="flex items-start"><span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="Clock" size={12}/> 時間</span><span className="font-bold text-brand-gold text-lg">{finalBooking.date} {finalBooking.time}</span></div>
+                                <div className="flex items-start"><span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="Users" size={12}/> 人數</span><span className="font-bold text-gray-800">{finalBooking.pax} 位</span></div>
+                                {finalBooking.note && <div className="flex items-start bg-gray-50 p-2 rounded"><span className="text-gray-400 w-20 flex-shrink-0 text-sm flex items-center gap-1"><Icon name="MessageSquare" size={12}/> 備註</span><span className="text-gray-800 text-sm">{finalBooking.note}</span></div>}
                             </div>
                         </div>
-
-                        <p className="text-xs text-gray-500 mb-6 leading-relaxed">
-                            若需取消或更改，請直接來電 <br/>
-                            <a href={`tel:${PHONE_NUMBER.replace(/-/g, '')}`} className="underline text-brand-blue font-bold text-sm">{PHONE_NUMBER}</a>
-                        </p>
-                        
-                        <button 
-                            onClick={() => {
-                                setStep(1);
-                                setFinalBooking(null);
-                                setFormData({ name: '', gender: '先生', phone: '', note: '' });
-                            }}
-                            className="text-brand-blue font-bold hover:underline flex items-center justify-center gap-1 mx-auto"
-                        >
-                            <Icon name="Home" size={16} />
-                            返回首頁
-                        </button>
+                        <p className="text-xs text-gray-500 mb-6 leading-relaxed">若需取消或更改，請直接來電 <br/><a href={`tel:${PHONE_NUMBER.replace(/-/g, '')}`} className="underline text-brand-blue font-bold text-sm">{PHONE_NUMBER}</a></p>
+                        <button onClick={() => { setStep(1); setFinalBooking(null); setFormData({ name: '', gender: '先生', phone: '', note: '' }); }} className="text-brand-blue font-bold hover:underline flex items-center justify-center gap-1 mx-auto"><Icon name="Home" size={16} /> 返回首頁</button>
                     </div>
                 );
             }
@@ -644,30 +449,13 @@
 
         const LoginView = ({ onSuccess }) => {
             const [pwd, setPwd] = useState('');
-            const [error, setError] = useState(''); // 取代 alert
-            
-            const handleLogin = (e) => {
-                e.preventDefault();
-                if (pwd === ADMIN_PASSWORD) onSuccess();
-                else setError("密碼錯誤，請重新輸入");
-            };
+            const [error, setError] = useState('');
+            const handleLogin = (e) => { e.preventDefault(); if (pwd === ADMIN_PASSWORD) onSuccess(); else setError("密碼錯誤，請重新輸入"); };
             return (
                 <div className="glass-panel rounded-2xl p-8 shadow-xl max-w-sm mx-auto mt-10 animate-fade-in">
-                    <h2 className="text-xl font-bold text-brand-blue mb-6 text-center flex items-center justify-center gap-2">
-                        <Icon name="Lock" size={20} />
-                        店長後台登入
-                    </h2>
+                    <h2 className="text-xl font-bold text-brand-blue mb-6 text-center flex items-center justify-center gap-2"><Icon name="Lock" size={20} /> 店長後台登入</h2>
                     <form onSubmit={handleLogin}>
-                        <input 
-                            type="password" 
-                            className={`w-full border rounded-lg p-3 mb-2 text-center text-gray-900 focus:ring-2 focus:outline-none ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-brand-blue'}`}
-                            placeholder="請輸入密碼"
-                            value={pwd}
-                            onChange={e => {
-                                setPwd(e.target.value);
-                                setError('');
-                            }}
-                        />
+                        <input type="password" className={`w-full border rounded-lg p-3 mb-2 text-center text-gray-900 focus:ring-2 focus:outline-none ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-brand-blue'}`} placeholder="請輸入密碼" value={pwd} onChange={e => { setPwd(e.target.value); setError(''); }} />
                         {error && <p className="text-red-500 text-xs text-center mb-4">{error}</p>}
                         <button className="w-full bg-brand-blue text-white py-3 rounded-lg font-bold shadow-md hover:bg-blue-900 transition mt-2">登入</button>
                     </form>
@@ -675,19 +463,131 @@
             );
         };
 
-        const AdminView = ({ bookings, onUpdate, onLogout, showModal }) => {
+        // --- 手動訂位 Modal 內容 ---
+        const ManualBookingForm = ({ onConfirm, onCancel, dates, generateTimeSlots, findAvailableTable, bookings }) => {
+            const [date, setDate] = useState(dates[0].value);
+            const [session, setSession] = useState('lunch');
+            const [time, setTime] = useState('');
+            const [pax, setPax] = useState(2);
+            const [name, setName] = useState('');
+            const [phone, setPhone] = useState('');
+            const [note, setNote] = useState('');
+            const [error, setError] = useState('');
+
+            const timeSlots = generateTimeSlots(session);
+            
+            // 檢查空位
+            const checkAvailability = () => {
+                if (!time) return false;
+                return findAvailableTable(date, time, pax, bookings);
+            };
+
+            const handleSubmit = () => {
+                if (!time) { setError('請選擇時間'); return; }
+                const tableInfo = findAvailableTable(date, time, pax, bookings);
+                if (!tableInfo) { setError('該時段已無空位'); return; }
+                if (!name.trim()) { setError('請輸入姓名或註記'); return; }
+
+                onConfirm({
+                    id: Date.now().toString(),
+                    date, time, pax, type: session,
+                    name, phone: phone || '-', note, gender: '',
+                    tableId: tableInfo.tableId, assignedParts: tableInfo.parts,
+                    status: 'confirmed', createdAt: new Date().toISOString()
+                });
+            };
+
+            const handleQuickBlock = () => {
+                if (!time) { setError('請選擇時間'); return; }
+                const tableInfo = findAvailableTable(date, time, pax, bookings);
+                if (!tableInfo) { setError('該時段已無空位'); return; }
+                
+                onConfirm({
+                    id: Date.now().toString(),
+                    date, time, pax, type: session,
+                    name: '已鎖定 (現場保留)', phone: '-', note: '後台鎖桌', gender: '',
+                    tableId: tableInfo.tableId, assignedParts: tableInfo.parts,
+                    status: 'confirmed', createdAt: new Date().toISOString()
+                });
+            };
+
+            return (
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 block mb-1">日期</label>
+                            <select value={date} onChange={e => setDate(e.target.value)} className="w-full border rounded p-2 text-sm text-gray-900">
+                                {dates.map(d => <option key={d.value} value={d.value}>{d.display}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                             <label className="text-xs font-bold text-gray-500 block mb-1">時段</label>
+                             <div className="flex border rounded overflow-hidden">
+                                <button onClick={() => setSession('lunch')} className={`flex-1 py-2 text-xs font-bold ${session === 'lunch' ? 'bg-brand-blue text-white' : 'bg-gray-100 text-gray-600'}`}>午</button>
+                                <button onClick={() => setSession('dinner')} className={`flex-1 py-2 text-xs font-bold ${session === 'dinner' ? 'bg-brand-blue text-white' : 'bg-gray-100 text-gray-600'}`}>晚</button>
+                             </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 block mb-1">時間</label>
+                            <select value={time} onChange={e => {setTime(e.target.value); setError('');}} className="w-full border rounded p-2 text-sm text-gray-900">
+                                <option value="">請選擇</option>
+                                {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 block mb-1">人數</label>
+                            <select value={pax} onChange={e => setPax(Number(e.target.value))} className="w-full border rounded p-2 text-sm text-gray-900">
+                                {[1,2,3,4].map(n => <option key={n} value={n}>{n} 人</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    {error && <div className="text-red-500 text-xs font-bold bg-red-50 p-2 rounded">{error}</div>}
+
+                    <div className="border-t pt-3">
+                         <label className="text-xs font-bold text-gray-500 block mb-1">客人姓名 / 備註</label>
+                         <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="輸入姓名或保留原因" className="w-full border rounded p-2 text-sm text-gray-900 mb-2"/>
+                         
+                         <label className="text-xs font-bold text-gray-500 block mb-1">電話 (選填)</label>
+                         <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="輸入電話" className="w-full border rounded p-2 text-sm text-gray-900 mb-2"/>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                        <button onClick={handleQuickBlock} className="flex-1 bg-gray-600 text-white py-2 rounded text-sm font-bold hover:bg-gray-700">快速鎖桌 (現場保留)</button>
+                        <button onClick={handleSubmit} className="flex-1 bg-brand-gold text-white py-2 rounded text-sm font-bold hover:bg-yellow-600">確認新增訂位</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const AdminView = ({ bookings, onUpdate, onLogout, showModal, closeModal }) => {
+            const todayStr = new Date().toISOString().split('T')[0];
+            
+            // 篩選日期：只保留 >= 今天的日期
+            const availableDates = useMemo(() => {
+                const dates = getDates(true); // 取得包含今天及未來的日期
+                const existingDates = bookings.map(b => b.date).filter(d => d >= todayStr);
+                const allDates = Array.from(new Set([...dates.map(d => d.value), ...existingDates])).sort();
+                return allDates;
+            }, [bookings, todayStr]);
+
             const [filterDate, setFilterDate] = useState(() => {
-                const today = new Date().toISOString().split('T')[0];
                 if (bookings.length > 0) {
-                    return bookings[bookings.length - 1].date;
+                     // 優先顯示最近一筆「未來」或「今天」的訂單日期
+                     const validBookings = bookings.filter(b => b.date >= todayStr);
+                     if (validBookings.length > 0) return validBookings[validBookings.length - 1].date;
                 }
-                return today;
+                return todayStr;
             });
 
-            const uniqueDates = Array.from(new Set([
-                ...getAvailableDates().map(d => d.value),
-                ...bookings.map(b => b.date)
-            ])).sort();
+            // 確保 filterDate 不會選到過去的日期 (除非是手動選的)
+            useEffect(() => {
+                if (filterDate < todayStr && availableDates.includes(todayStr)) {
+                    setFilterDate(todayStr);
+                }
+            }, [todayStr]);
 
             const filteredBookings = bookings
                 .filter(b => b.date === filterDate && b.status !== 'cancelled')
@@ -699,29 +599,44 @@
                 );
                 onUpdate(newBookings);
             };
+            
+            // 開啟手動訂位 Modal
+            const openManualBooking = () => {
+                showModal({
+                    title: "後台手動新增 / 鎖桌",
+                    customContent: (
+                        <ManualBookingForm 
+                            dates={getDates(true)}
+                            generateTimeSlots={generateTimeSlots}
+                            findAvailableTable={findAvailableTable}
+                            bookings={bookings}
+                            onCancel={closeModal}
+                            onConfirm={(newBooking) => {
+                                onUpdate([...bookings, newBooking]);
+                                closeModal();
+                                setFilterDate(newBooking.date); // 跳轉到該日期
+                            }}
+                        />
+                    )
+                });
+            };
 
             return (
                 <div className="glass-panel rounded-2xl p-4 shadow-xl min-h-[500px] animate-fade-in flex flex-col">
                     <div className="flex justify-between items-center mb-4 border-b pb-3">
-                        <h2 className="text-lg font-bold text-brand-blue flex items-center gap-2">
-                            <Icon name="Settings" size={18} />
-                            訂位管理
-                        </h2>
-                        <button onClick={onLogout} className="text-sm text-gray-500 hover:text-red-500 flex items-center gap-1">
-                            <Icon name="LogOut" size={14} /> 登出
-                        </button>
+                        <h2 className="text-lg font-bold text-brand-blue flex items-center gap-2"><Icon name="Settings" size={18} /> 訂位管理</h2>
+                        <div className="flex gap-3 items-center">
+                            <button onClick={openManualBooking} className="text-xs bg-brand-gold text-white px-2 py-1 rounded font-bold hover:bg-yellow-600 transition flex items-center gap-1">
+                                <Icon name="Plus" size={12} /> 手動新增 / 鎖桌
+                            </button>
+                            <button onClick={onLogout} className="text-sm text-gray-500 hover:text-red-500 flex items-center gap-1"><Icon name="LogOut" size={14} /> 登出</button>
+                        </div>
                     </div>
 
                     <div className="mb-4 bg-gray-50 p-3 rounded-lg">
-                        <label className="text-xs text-gray-500 font-bold uppercase block mb-1 flex items-center gap-1">
-                            <Icon name="Calendar" size={12} /> 選擇日期
-                        </label>
-                        <select 
-                            value={filterDate} 
-                            onChange={(e) => setFilterDate(e.target.value)}
-                            className="w-full bg-white border border-gray-300 rounded p-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-blue"
-                        >
-                            {uniqueDates.map(d => (
+                        <label className="text-xs text-gray-500 font-bold uppercase block mb-1 flex items-center gap-1"><Icon name="Calendar" size={12} /> 選擇日期</label>
+                        <select value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full bg-white border border-gray-300 rounded p-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-blue">
+                            {availableDates.map(d => (
                                 <option key={d} value={d}>{d}</option>
                             ))}
                         </select>
@@ -740,34 +655,18 @@
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <span className="text-xl font-bold text-brand-blue font-mono">{b.time}</span>
-                                                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${b.type === 'lunch' ? 'bg-orange-100 text-orange-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                                                    {b.type === 'lunch' ? '午' : '晚'}
-                                                </span>
-                                                <span className="text-sm font-bold text-brand-gold border border-brand-gold px-1.5 rounded bg-yellow-50">{b.tableId}</span>
+                                                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${b.type === 'lunch' ? 'bg-orange-100 text-orange-700' : 'bg-indigo-100 text-indigo-700'}`}>{b.type === 'lunch' ? '午' : '晚'}</span>
+                                                <span className="text-sm font-bold text-brand-gold border border-brand-gold px-1.5 rounded bg-yellow-50">{formatTableDisplay(b)}</span>
                                             </div>
                                             <div className="font-bold text-gray-800 flex items-center gap-2">
                                                 {b.name} {b.gender}
                                                 <span className="text-xs font-normal text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">{b.pax}人</span>
                                             </div>
-                                            <a href={`tel:${b.phone}`} className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 mt-1">
-                                                <Icon name="Phone" size={12} />
-                                                {b.phone}
-                                            </a>
-                                            {b.note && (
-                                                <div className="text-xs text-gray-600 bg-gray-100 p-1.5 mt-2 rounded border border-gray-200 flex items-start gap-1">
-                                                    <span className="mt-0.5"><Icon name="MessageSquare" size={10} /></span>
-                                                    {b.note}
-                                                </div>
-                                            )}
+                                            <a href={`tel:${b.phone}`} className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 mt-1"><Icon name="Phone" size={12} /> {b.phone}</a>
+                                            {b.note && <div className="text-xs text-gray-600 bg-gray-100 p-1.5 mt-2 rounded border border-gray-200 flex items-start gap-1"><span className="mt-0.5"><Icon name="MessageSquare" size={10} /></span> {b.note}</div>}
                                         </div>
                                         <div className="flex flex-col gap-2 ml-3">
-                                            <button 
-                                                onClick={() => toggleArrived(b.id)}
-                                                className={`px-3 py-1.5 text-xs rounded-md font-bold transition flex items-center justify-center gap-1 w-20
-                                                    ${b.arrived ? 'bg-green-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-green-500 hover:text-white'}`}
-                                            >
-                                                {b.arrived ? <><Icon name="Check" size={12}/> 已到</> : '確認報到'}
-                                            </button>
+                                            <button onClick={() => toggleArrived(b.id)} className={`px-3 py-1.5 text-xs rounded-md font-bold transition flex items-center justify-center gap-1 w-20 ${b.arrived ? 'bg-green-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-green-500 hover:text-white'}`}>{b.arrived ? <><Icon name="Check" size={12}/> 已到</> : '確認報到'}</button>
                                         </div>
                                     </div>
                                 </div>
