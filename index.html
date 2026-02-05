@@ -233,17 +233,25 @@
         return { lunch: generate(11, 30, 14, 0), dinner: generate(17, 0, 21, 0) };
       }, [formData.date, formData.guests, reservations]);
 
+      // 生成客人可選的 7 日日期清單
+      const customerAvailableDates = useMemo(() => {
+        const dates = [];
+        const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+        for (let i = 1; i <= 7; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          const dateStr = d.toISOString().split('T')[0];
+          const dayName = dayNames[d.getDay()];
+          dates.push({ value: dateStr, label: `${dateStr} (${dayName})` });
+        }
+        return dates;
+      }, []);
+
       // 4. 操作處理器
       const handleCustomerBooking = async (e) => {
         e.preventDefault();
         if (!formData.time) return;
         
-        // 二次檢查：程式強制限制日期
-        if (formData.date < MIN_DATE || formData.date > MAX_DATE) {
-          alert(`抱歉，請選擇預約範圍內的日期：\n${MIN_DATE} ~ ${MAX_DATE}`);
-          return;
-        }
-
         const cleanPhone = formData.phone.replace(/[\s-]/g, '');
         if (!/^09\d{8}$/.test(cleanPhone)) { alert("手機號碼格式錯誤"); return; }
         
@@ -280,8 +288,9 @@
       };
 
       const handleCancel = async (id) => {
+        if (!window.confirm("確定取消訂位？")) return;
         try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ status: 'cancelled' }); }
-        catch (err) { alert("取消失敗"); }
+        catch (err) { alert("操作失敗"); }
       };
 
       const handleRestore = async (id) => {
@@ -290,13 +299,11 @@
       };
 
       const handleUpdateTables = async (id, newTableIds) => {
-        if (newTableIds.length === 0) { alert("請至少選擇一個桌號"); return; }
-        setLoading(true);
-        const tableNames = newTableIds.map(tid => TABLES.find(t => t.id === tid)?.name || tid).join(', ');
+        const tableNames = newTableIds.map(tid => TABLES.find(t => t.id === tid).name).join(', ');
         try {
           await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ tableIds: newTableIds, tableId: newTableIds[0], tableName: tableNames });
           setEditingId(null);
-        } catch (err) { alert("更新失敗"); } finally { setLoading(false); }
+        } catch (err) { alert("更新失敗"); }
       };
 
       const handleAdminLogin = (e) => {
@@ -344,7 +351,7 @@
               const disabled = isTableDisabled(t);
               const selected = selectedIds.includes(t.id);
               return (
-                <button key={t.id} type="button" disabled={disabled} onClick={() => toggleTable(t.id)} className={`py-2.5 rounded-lg text-[11px] font-black btn-transition border ${selected ? 'bg-gold text-brand border-gold shadow-[0_0_10px_rgba(253,230,138,0.3)] scale-105' : disabled ? 'bg-slate-800 text-slate-600 border-slate-700 opacity-40 cursor-not-allowed' : 'bg-transparent text-slate-300 border-slate-600 hover:border-gold hover:text-gold'}`}>
+                <button key={t.id} type="button" disabled={disabled} onClick={() => toggleTable(t.id)} className={`py-2 rounded text-[10px] font-bold btn-transition border ${selected ? 'bg-gold text-brand border-gold' : disabled ? 'bg-slate-800 text-slate-600 border-slate-700 opacity-40 cursor-not-allowed' : 'bg-transparent text-slate-300 border-slate-600 hover:border-gold'}`}>
                   {t.name}
                 </button>
               );
@@ -387,22 +394,17 @@
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="space-y-1">
                         <span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">預約日期</span>
-                        <input 
-                          type="date" 
-                          className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-sm" 
-                          value={formData.date} 
-                          min={MIN_DATE} 
-                          max={MAX_DATE} 
-                          onChange={e => {
-                            let val = e.target.value;
-                            // 程式強制攔截與修正日期 (解決瀏覽器不支援 min/max 問題)
-                            if (val < MIN_DATE) val = MIN_DATE;
-                            if (val > MAX_DATE) val = MAX_DATE;
-                            setFormData({...formData, date: val, time: ''});
-                          }} 
-                        />
+                        <select 
+                          className="w-full p-3 bg-slate-100 rounded-xl border-none outline-none font-bold text-sm text-brand"
+                          value={formData.date}
+                          onChange={e => setFormData({...formData, date: e.target.value, time: ''})}
+                        >
+                          {customerAvailableDates.map(d => (
+                            <option key={d.value} value={d.value}>{d.label}</option>
+                          ))}
+                        </select>
                       </div>
-                      <div className="space-y-1"><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">用餐人數</span><select className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-lg text-brand" value={formData.guests} onChange={e => setFormData({...formData, guests: e.target.value, time: ''})}>{[1,2,3,4].map(n => <option key={n} value={n}>{n} 位</option>)}</select></div>
+                      <div className="space-y-1"><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">人數</span><select className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-lg text-brand" value={formData.guests} onChange={e => setFormData({...formData, guests: e.target.value, time: ''})}>{[1,2,3,4].map(n => <option key={n} value={n}>{n} 位</option>)}</select></div>
                     </div>
                     <div className="flex bg-slate-100 p-1 rounded-xl mb-4">{['lunch', 'dinner'].map(m => (<button key={m} onClick={() => {setActiveMeal(m); setFormData({...formData, time: ''})}} className={`flex-1 py-2 rounded-lg text-sm font-bold btn-transition ${activeMeal === m ? 'bg-brand text-white shadow-md' : 'text-slate-500'}`}>{m === 'lunch' ? '午餐時段' : '晚餐時段'}</button>))}</div>
                     <div className="min-h-[140px] grid grid-cols-4 gap-2">
@@ -440,7 +442,7 @@
             ) : (
               /* --- 店長端區域 --- */
               !isAdminAuth ? (
-                <div className="animate-in fade-in zoom-in-95 duration-500 pt-20 font-bold">
+                <div className="animate-in fade-in zoom-in-95 duration-500 pt-20">
                   <div className="bg-[#16325B] p-10 rounded-[3rem] shadow-2xl border border-white/10 text-center">
                     <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gold"><Icons.Lock /></div>
                     <h2 className="text-xl font-bold text-white mb-6 tracking-widest uppercase italic font-black">管理員登入</h2>
@@ -451,12 +453,13 @@
                   </div>
                 </div>
               ) : (
+                /* --- 店長看板 --- */
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 text-left">
                   <div className="flex flex-col gap-4 mb-2 bg-[#16325B] p-6 rounded-[2.5rem] shadow-xl border border-white/5">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-black text-gold tracking-tighter italic">今日預約儀表板</h2>
+                      <h2 className="text-xl font-black text-gold tracking-tighter italic">今日預約列表</h2>
                       <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 text-white rounded-full text-xs font-black shadow-lg shadow-emerald-900/40 btn-active btn-transition">
-                        <Icons.Plus /> 手動建立訂位
+                        <Icons.Plus /> 手動建立新訂單
                       </button>
                     </div>
                     {/* 店長日期選擇與月曆 */}
@@ -480,7 +483,7 @@
                   
                   <div className="space-y-4 pb-20">
                     {adminFilteredReservations.length === 0 ? (
-                      <div className="py-24 text-center bg-[#16325B] rounded-[3rem] border border-white/5 text-slate-500 text-xs font-bold tracking-widest uppercase shadow-inner italic">此日期目前尚無任何預約紀錄</div>
+                      <div className="py-24 text-center bg-[#16325B] rounded-[3rem] border border-white/5 text-slate-500 text-xs font-bold tracking-widest uppercase shadow-inner italic">此日期尚無預約紀錄</div>
                     ) : (
                       adminFilteredReservations.map(res => (
                         <div key={res.id} className={`p-6 rounded-[2.5rem] border btn-transition ${
@@ -496,7 +499,7 @@
                                 'bg-brand text-white font-mono'
                               }`}>
                                 <span className="text-[9px] font-bold opacity-60 uppercase tracking-tighter">時間</span>
-                                <span className="text-xl font-black leading-none tracking-tight">{res.time}</span>
+                                <span className="text-xl font-bold leading-none tracking-tight">{res.time}</span>
                               </div>
                               <div>
                                 <div className={`font-black text-lg flex items-center gap-2 ${res.status === 'arrived' || res.status === 'cancelled' ? 'text-slate-400' : 'text-brand'}`}>
@@ -511,7 +514,7 @@
                             <div className="flex gap-2">
                               {res.status === 'booked' && (
                                 <Fragment>
-                                  <button onClick={() => { setEditingId(editingId === res.id ? null : res.id); setTempTableIds(res.tableIds || [res.tableId]); }} className={`p-3.5 rounded-2xl btn-transition shadow-sm btn-active ${editingId === res.id ? 'bg-gold text-brand shadow-[0_0_15px_rgba(253,230,138,0.5)]' : 'bg-slate-100 text-slate-500 hover:bg-gold'}`} title="手動修改桌號"><Icons.Edit /></button>
+                                  <button onClick={() => { setEditingId(editingId === res.id ? null : res.id); setTempTableIds(res.tableIds || [res.tableId]); }} className={`p-3.5 rounded-2xl btn-transition shadow-sm btn-active ${editingId === res.id ? 'bg-gold text-brand shadow-[0_0_15px_rgba(253,230,138,0.5)]' : 'bg-slate-100 text-slate-500 hover:bg-gold'}`} title="修改桌號"><Icons.Edit /></button>
                                   <button onClick={() => handleCancel(res.id)} className="p-3.5 bg-red-50 text-red-400 rounded-2xl hover:bg-red-500 hover:text-white btn-transition shadow-sm btn-active" title="取消訂單"><Icons.Trash /></button>
                                   <button onClick={() => handleCheckIn(res.id)} className="bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white px-5 py-2 rounded-2xl flex flex-col items-center justify-center btn-transition shadow-sm shadow-emerald-900/10 btn-active">
                                     <Icons.CheckCircle2 /><span className="text-[9px] font-black uppercase mt-0.5 tracking-tighter italic">入席</span>
