@@ -33,7 +33,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
   <style>
-    body { background-color: #0F2849; color: white; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: #0F2849; color: white; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
     * { -webkit-tap-highlight-color: transparent; }
     
     .loader {
@@ -47,15 +47,33 @@
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .btn-transition { transition: all 0.2s ease-in-out; }
-    .btn-active:active { transform: scale(0.92); }
+    .btn-active:active { transform: scale(0.95); }
+
+    /* 自定義捲軸 */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(253, 230, 138, 0.2); border-radius: 10px; }
+
+    /* 隱藏原生月曆圖示，但保留點擊功能 */
+    .date-input-hidden::-webkit-calendar-picker-indicator {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+      opacity: 0;
+    }
   </style>
 </head>
 <body class="bg-brand text-slate-100 selection:bg-amber-300 selection:text-brand">
   
   <div id="root" class="min-h-screen flex flex-col items-center justify-center p-4 text-center">
     <div class="loader"></div>
-    <div class="text-gold font-bold text-xl mb-2 italic">極禾鍋物職人</div>
-    <div class="text-slate-400 text-sm">系統載入中...</div>
+    <div class="text-gold font-bold text-xl mb-2 italic tracking-widest">極禾鍋物職人</div>
+    <div class="text-slate-400 text-sm">系統載入中，請稍候...</div>
   </div>
 
   <script type="text/babel" data-presets="env,react">
@@ -68,11 +86,13 @@
       CheckCircle2: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
       ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
       ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+      Plus: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
       Zap: () => <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
       Calendar: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
       Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>,
       Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
-      RotateCcw: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      RotateCcw: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 10 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
+      X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
     };
 
     // --- Firebase 配置 ---
@@ -93,21 +113,26 @@
     const db = firebase.firestore();
     const appId = 'jiheyenping-reservations';
 
-    const { useState, useEffect, useMemo } = React;
+    const { useState, useEffect, useMemo, Fragment } = React;
 
     const getLocalYYYMMDD = (offsetDays = 0) => {
       const d = new Date();
       d.setDate(d.getDate() + offsetDays);
-      return d.toISOString().split('T')[0];
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     };
 
+    // --- 常數定義 ---
     const DINING_TIME = 90;
     const CLEANING_TIME = 10;
-    const TOTAL_CYCLE = DINING_TIME + CLEANING_TIME;
+    const TOTAL_CYCLE = DINING_TIME + CLEANING_TIME; 
     const LUNCH_END = "15:00", DINNER_END = "22:00";
-    const LUNCH_WARN_START = "13:30", DINNER_WARN_START = "20:30";
+    const LUNCH_WARN_START = "13:30", DINNER_WARN_START = "20:30"; 
     const MIN_DATE = getLocalYYYMMDD(1), MAX_DATE = getLocalYYYMMDD(7);
 
+    // --- 桌位定義 ---
     const tableCodes = ['A1', 'A2', 'A3', 'A5', 'A6', 'A7', 'A8', 'A9', 'B1', 'B2', 'B3', 'B5', 'B6', 'B7'];
     const TABLES = [];
     tableCodes.forEach(code => {
@@ -117,21 +142,26 @@
     });
 
     function App() {
+      // 1. 狀態宣告
       const [user, setUser] = useState(null);
-      const [view, setView] = useState('customer');
+      const [view, setView] = useState('customer'); 
       const [customerStep, setCustomerStep] = useState('form');
-      const [lastBooking, setLastBooking] = useState(null);
       const [isAdminAuth, setIsAdminAuth] = useState(false);
       const [passwordInput, setPasswordInput] = useState('');
       const [reservations, setReservations] = useState([]);
       const [loading, setLoading] = useState(false);
       const [activeMeal, setActiveMeal] = useState('lunch');
       const [adminDate, setAdminDate] = useState(getLocalYYYMMDD(0));
-      const [editingId, setEditingId] = useState(null);
-      
       const [formData, setFormData] = useState({
         name: '', gender: '先生', phone: '', guests: 2, date: MIN_DATE, time: '', remarks: ''
       });
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [adminForm, setAdminForm] = useState({
+        name: '', gender: '先生', phone: '', guests: 2, date: getLocalYYYMMDD(0), time: '11:30', remarks: '', tableIds: []
+      });
+      const [editingId, setEditingId] = useState(null);
+      const [tempTableIds, setTempTableIds] = useState([]); 
+      const [lastBooking, setLastBooking] = useState(null);
 
       useEffect(() => {
         auth.signInAnonymously().catch(console.error);
@@ -146,31 +176,43 @@
           });
       }, [user]);
 
-      const findAvailableTable = (guestCount, targetDate, targetTime, currentReservations) => {
+      // 2. 衝突偵測邏輯
+      const getOccupiedTableIds = (targetDate, targetTime, currentReservations, excludeId = null) => {
         const targetStart = new Date(`${targetDate} ${targetTime}`).getTime();
         const targetEnd = targetStart + TOTAL_CYCLE * 60000;
-        const occupiedIds = currentReservations
+
+        return currentReservations
           .filter(res => {
-            if (res.date !== targetDate || res.status === 'cancelled') return false;
+            if (res.id === excludeId || res.date !== targetDate || res.status === 'cancelled') return false;
             const resStart = new Date(`${res.date} ${res.time}`).getTime();
             const resEnd = resStart + TOTAL_CYCLE * 60000;
             return targetStart < resEnd && resStart < targetEnd;
           })
-          .map(r => r.tableId);
+          .flatMap(r => r.tableIds || [r.tableId]);
+      };
 
+      const findAutoTable = (guestCount, targetDate, targetTime, currentReservations) => {
+        const occupiedIds = getOccupiedTableIds(targetDate, targetTime, currentReservations);
         if (guestCount > 2) {
           const bigTables = TABLES.filter(t => !t.isSub);
           for (let t of bigTables) {
-            if (!occupiedIds.includes(t.id) && t.subs.every(sid => !occupiedIds.includes(sid))) return t;
+            if (!occupiedIds.includes(t.id) && t.subs.every(sid => !occupiedIds.includes(sid))) return [t.id];
           }
         } else {
           const subTables = TABLES.filter(t => t.isSub);
           for (let s of subTables) {
-            if (!occupiedIds.includes(s.id) && !occupiedIds.includes(s.parent)) return s;
+            if (!occupiedIds.includes(s.id) && !occupiedIds.includes(s.parent)) return [s.id];
           }
         }
         return null;
       };
+
+      // 3. 衍生資料 (計算過濾後名單與時段)
+      const adminFilteredReservations = useMemo(() => {
+        return reservations
+          .filter(r => r.date === adminDate)
+          .sort((a, b) => a.time.localeCompare(b.time));
+      }, [reservations, adminDate]);
 
       const availableSlots = useMemo(() => {
         const generate = (startH, startM, endH, endM) => {
@@ -181,7 +223,7 @@
           end.setHours(endH, endM, 0, 0);
           while (curr <= end) {
             const timeStr = curr.toTimeString().substring(0, 5);
-            if (findAvailableTable(parseInt(formData.guests), formData.date, timeStr, reservations)) slots.push(timeStr);
+            if (findAutoTable(parseInt(formData.guests), formData.date, timeStr, reservations)) slots.push(timeStr);
             curr.setMinutes(curr.getMinutes() + 15);
           }
           return slots;
@@ -189,15 +231,18 @@
         return { lunch: generate(11, 30, 14, 0), dinner: generate(17, 0, 21, 0) };
       }, [formData.date, formData.guests, reservations]);
 
-      const handleBooking = async (e) => {
+      // 4. 操作處理器
+      const handleCustomerBooking = async (e) => {
         e.preventDefault();
         if (!formData.time) return;
         const cleanPhone = formData.phone.replace(/[\s-]/g, '');
         if (!/^09\d{8}$/.test(cleanPhone)) { alert("手機號碼格式錯誤"); return; }
         setLoading(true);
-        const table = findAvailableTable(parseInt(formData.guests), formData.date, formData.time, reservations);
-        if (!table) { alert("此時段位置已滿。"); setLoading(false); return; }
-        const finalData = { ...formData, phone: cleanPhone, tableId: table.id, tableName: table.name, status: 'booked', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+        const tableIds = findAutoTable(parseInt(formData.guests), formData.date, formData.time, reservations);
+        if (!tableIds) { alert("此時段座位已滿。"); setLoading(false); return; }
+
+        const tableNames = tableIds.map(id => TABLES.find(t => t.id === id)?.name || id).join(', ');
+        const finalData = { ...formData, phone: cleanPhone, tableIds, tableId: tableIds[0], tableName: tableNames, status: 'booked', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
         try {
           await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').add(finalData);
           setLastBooking(finalData);
@@ -206,44 +251,42 @@
         } catch (err) { alert("預約失敗"); } finally { setLoading(false); }
       };
 
-      const handleCheckIn = async (id) => {
+      const handleAdminCreateBooking = async (e) => {
+        e.preventDefault();
+        if (adminForm.tableIds.length === 0) { alert("請至少勾選一個桌號"); return; }
+        setLoading(true);
+        const tableNames = adminForm.tableIds.map(id => TABLES.find(t => t.id === id)?.name || id).join(', ');
+        const finalData = { ...adminForm, tableId: adminForm.tableIds[0], tableName: tableNames, status: 'booked', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
         try {
-          await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ status: 'arrived' });
-        } catch (err) { alert("操作失敗"); }
+          await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').add(finalData);
+          setShowAddModal(false);
+          setAdminForm({ ...adminForm, name: '', phone: '', remarks: '', tableIds: [] });
+        } catch (err) { alert("建立失敗"); } finally { setLoading(false); }
+      };
+
+      const handleCheckIn = async (id) => {
+        try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ status: 'arrived' }); }
+        catch (err) { alert("操作失敗"); }
       };
 
       const handleCancel = async (id) => {
-        try {
-          await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ status: 'cancelled' });
-        } catch (err) { alert("操作失敗"); }
+        try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ status: 'cancelled' }); }
+        catch (err) { alert("取消失敗"); }
       };
 
       const handleRestore = async (id) => {
-        try {
-          await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ status: 'booked' });
-        } catch (err) { alert("恢復失敗"); }
+        try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ status: 'booked' }); }
+        catch (err) { alert("恢復失敗"); }
       };
 
-      const handleUpdateTable = async (id, newTableId) => {
-        const tableObj = TABLES.find(t => t.id === newTableId);
-        if (!tableObj) return;
+      const handleUpdateTables = async (id, newTableIds) => {
+        if (newTableIds.length === 0) { alert("請至少選擇一個桌號"); return; }
+        setLoading(true);
+        const tableNames = newTableIds.map(tid => TABLES.find(t => t.id === tid)?.name || tid).join(', ');
         try {
-          await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ 
-            tableId: newTableId,
-            tableName: tableObj.name 
-          });
+          await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ tableIds: newTableIds, tableId: newTableIds[0], tableName: tableNames });
           setEditingId(null);
-        } catch (err) { alert("更新失敗"); }
-      };
-
-      const generateTestData = async () => {
-        const today = getLocalYYYMMDD(0);
-        try {
-          await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').add({
-            name: "測試人員", gender: "先生", phone: "0900000000", guests: "2", date: today, time: "12:00", tableId: "A1-In", tableName: "A1 內", status: "booked", remarks: "測試用資料", createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          setAdminDate(today);
-        } catch (err) { alert("生成失敗"); }
+        } catch (err) { alert("更新失敗"); } finally { setLoading(false); }
       };
 
       const handleAdminLogin = (e) => {
@@ -265,31 +308,79 @@
         return null;
       }, [formData.time, activeMeal]);
 
-      const adminFilteredReservations = useMemo(() => {
-        return reservations.filter(r => r.date === adminDate).sort((a, b) => a.time.localeCompare(b.time));
-      }, [reservations, adminDate]);
+      // 5. 元件：桌位選擇器
+      const TableSelector = ({ selectedIds, onChange, date, time, excludeId }) => {
+        const occupied = getOccupiedTableIds(date, time, reservations, excludeId);
+        
+        const isTableDisabled = (t) => {
+          // 修復：如果這桌現在已經在暫選清單裡，絕對不要禁用它 (讓店長能點選反選)
+          if (selectedIds.includes(t.id)) return false;
+
+          // 判斷是否被「其他訂單」佔用
+          if (occupied.includes(t.id)) return true;
+
+          // 判斷層級衝突
+          if (!t.isSub) {
+             if (t.subs.some(sid => occupied.includes(sid))) return true;
+             return t.subs.some(sid => selectedIds.includes(sid)); 
+          } else {
+             if (occupied.includes(t.parent)) return true;
+             return selectedIds.includes(t.parent); 
+          }
+        };
+
+        const toggleTable = (tid) => {
+          if (selectedIds.includes(tid)) { onChange(selectedIds.filter(id => id !== tid)); }
+          else { onChange([...selectedIds, tid]); }
+        };
+
+        return (
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 max-h-[300px] overflow-y-auto p-2 bg-slate-900/50 rounded-xl border border-white/5 shadow-inner">
+            {TABLES.map(t => {
+              const disabled = isTableDisabled(t);
+              const selected = selectedIds.includes(t.id);
+              return (
+                <button 
+                  key={t.id} 
+                  type="button" 
+                  disabled={disabled} 
+                  onClick={() => toggleTable(t.id)} 
+                  className={`py-2.5 rounded-lg text-[11px] font-black btn-transition border ${
+                    selected ? 'bg-gold text-brand border-gold shadow-[0_0_10px_rgba(253,230,138,0.3)] scale-105' : 
+                    disabled ? 'bg-slate-800 text-slate-600 border-slate-700 opacity-40 cursor-not-allowed' : 
+                    'bg-transparent text-slate-300 border-slate-600 hover:border-gold hover:text-gold'
+                  }`}
+                >
+                  {t.name}
+                </button>
+              );
+            })}
+          </div>
+        );
+      };
 
       return (
         <div className="min-h-screen bg-brand text-slate-100 pb-20 font-sans selection:bg-gold selection:text-brand">
           <nav className="bg-brand/90 backdrop-blur-md border-b border-white/10 px-4 py-4 flex justify-between items-center sticky top-0 z-50">
             <div className="flex flex-col text-left">
               <div className="flex items-center gap-2 font-bold text-gold text-lg tracking-wide"><Icons.Store /><span>極禾鍋物職人</span></div>
-              <span className="text-[10px] text-slate-400 tracking-widest pl-7">北市延平店訂位系統</span>
+              <span className="text-[10px] text-slate-400 tracking-widest pl-7 uppercase font-black tracking-tighter">北市延平店管理系統</span>
             </div>
-            <button onClick={() => { setView(view === 'customer' ? 'admin' : 'customer'); if (view === 'admin') setIsAdminAuth(false); }} className="px-4 py-2 bg-white/5 border border-white/20 text-gold rounded-lg text-[10px] font-bold hover:bg-white/10 btn-transition flex items-center gap-2">
-              {view === 'customer' ? <React.Fragment><Icons.Lock /> 店長專用</React.Fragment> : <React.Fragment><Icons.Store /> 返回訂位</React.Fragment>}
+            <button onClick={() => { setView(view === 'customer' ? 'admin' : 'customer'); if (view === 'admin') setIsAdminAuth(false); }} className="px-4 py-2 bg-white/5 border border-white/20 text-gold rounded-lg text-[10px] font-bold hover:bg-white/10 btn-transition flex items-center gap-2 shadow-lg">
+              {view === 'customer' ? <Fragment><Icons.Lock /> 店長登入</Fragment> : <Fragment><Icons.Store /> 返回訂位</Fragment>}
             </button>
           </nav>
 
           <div className="max-w-xl mx-auto p-4 mt-4">
             {view === 'customer' ? (
               customerStep === 'form' ? (
+                /* --- 客人端區域 --- */
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
                   <div className="bg-[#16325B] p-6 rounded-3xl border border-white/10 shadow-xl text-left">
-                    <h1 className="text-xl font-bold mb-3 text-gold italic underline decoration-gold/30">線上預訂說明</h1>
+                    <h1 className="text-xl font-bold mb-3 text-gold italic underline decoration-gold/30 text-shadow">線上預訂說明</h1>
                     <ul className="space-y-2 text-sm text-slate-300 font-light">
                       <li>● 開放範圍：隔日起至 7 日內之訂位</li>
-                      <li>● 人數限制：4 人以下 (含幼童)</li>
+                      <li>● 人數限制：本系統僅接受 <span className="text-gold font-bold">4 人以下</span> 預約</li>
                       <li>● 用餐時間：<span className="text-amber-300 font-bold">90 分鐘</span></li>
                     </ul>
                     <div className="mt-6 pt-4 border-t border-white/5 text-center">
@@ -298,170 +389,239 @@
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-3xl p-6 text-brand shadow-lg text-left">
+                  <div className="bg-white rounded-3xl p-6 text-brand shadow-lg text-left font-bold border-2 border-white/10">
                     <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="space-y-1"><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">用餐日期</span><input type="date" className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-sm" value={formData.date} min={MIN_DATE} max={MAX_DATE} onChange={e => setFormData({...formData, date: e.target.value, time: ''})} /></div>
-                      <div className="space-y-1"><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">人數</span><select className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-lg" value={formData.guests} onChange={e => setFormData({...formData, guests: e.target.value, time: ''})}>{[1,2,3,4].map(n => <option key={n} value={n}>{n} 位</option>)}</select></div>
+                      <div className="space-y-1"><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">預約日期</span><input type="date" className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-sm" value={formData.date} min={MIN_DATE} max={MAX_DATE} onChange={e => setFormData({...formData, date: e.target.value, time: ''})} /></div>
+                      <div className="space-y-1"><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">用餐人數</span><select className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-lg text-brand" value={formData.guests} onChange={e => setFormData({...formData, guests: e.target.value, time: ''})}>{[1,2,3,4].map(n => <option key={n} value={n}>{n} 位</option>)}</select></div>
                     </div>
                     <div className="flex bg-slate-100 p-1 rounded-xl mb-4">{['lunch', 'dinner'].map(m => (<button key={m} onClick={() => {setActiveMeal(m); setFormData({...formData, time: ''})}} className={`flex-1 py-2 rounded-lg text-sm font-bold btn-transition ${activeMeal === m ? 'bg-brand text-white shadow-md' : 'text-slate-500'}`}>{m === 'lunch' ? '午餐時段' : '晚餐時段'}</button>))}</div>
                     <div className="min-h-[140px] grid grid-cols-4 gap-2">
                       {availableSlots[activeMeal].map(slot => (<button key={slot} onClick={() => setFormData({...formData, time: slot})} className={`py-3 rounded-lg text-xs font-bold btn-transition border ${formData.time === slot ? 'bg-accent text-white border-accent shadow-md scale-105' : 'bg-white text-slate-600 border-slate-200 hover:border-brand'}`}>{slot}</button>))}
-                      {availableSlots[activeMeal].length === 0 && <div className="col-span-4 py-10 text-center text-slate-400 text-xs font-bold border-2 border-dashed border-slate-100 rounded-2xl">該時段桌位已額滿</div>}
+                      {availableSlots[activeMeal].length === 0 && <div className="col-span-4 py-10 text-center text-slate-400 text-xs font-bold border-2 border-dashed border-slate-100 rounded-2xl italic uppercase tracking-widest text-brand">該時段已客滿</div>}
                     </div>
                     {getTimeWarningInfo && (<div className="mt-4 p-3 bg-red-50 rounded-xl flex items-start gap-3 text-red-700 border border-red-100 animate-pulse"><Icons.AlertTriangle /><span className="text-xs font-bold leading-relaxed">{getTimeWarningInfo.msg}</span></div>)}
                   </div>
 
-                  <form onSubmit={handleBooking} className="bg-white rounded-3xl p-6 text-brand shadow-lg space-y-4 text-left">
-                    <div><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">訂位大名</span><div className="flex gap-2"><input type="text" required placeholder="姓名" className="flex-1 p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-1 focus:ring-brand font-bold" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /><div className="flex bg-slate-100 p-1 rounded-xl h-[56px]">{['先生', '小姐'].map(g => (<button key={g} type="button" onClick={() => setFormData({...formData, gender: g})} className={`px-4 rounded-lg text-xs font-bold btn-transition ${formData.gender === g ? 'bg-brand text-white shadow-sm' : 'text-slate-400'}`}>{g}</button>))}</div></div></div>
-                    <div><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">聯絡電話</span><input type="tel" required placeholder="09XX-XXX-XXX" className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-1 focus:ring-brand font-bold" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
-                    <div><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">備註需求</span><textarea placeholder="選填需求..." className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-1 focus:ring-brand font-bold min-h-[80px] resize-none" value={formData.remarks} onChange={e => setFormData({...formData, remarks: e.target.value})} /></div>
-                    <button disabled={loading || !formData.time} className="w-full bg-accent text-white py-4 rounded-xl font-bold text-lg disabled:bg-slate-300 shadow-lg mt-2 btn-transition btn-active">{loading ? "處理中..." : formData.time ? `確認預約 ${formData.time}` : "請選擇時間"}</button>
+                  <form onSubmit={handleCustomerBooking} className="bg-white rounded-3xl p-6 text-brand shadow-lg space-y-4 text-left font-bold border-2 border-white/10">
+                    <div><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">訂位大名</span><div className="flex gap-2"><input type="text" required placeholder="您的姓名" className="flex-1 p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-1 focus:ring-brand font-bold" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /><div className="flex bg-slate-100 p-1 rounded-xl h-[56px] w-[130px] border border-slate-100 shrink-0">
+                      {['先生', '小姐'].map(g => (<button key={g} type="button" onClick={() => setFormData({...formData, gender: g})} className={`flex-1 rounded-lg text-xs font-black btn-transition ${formData.gender === g ? 'bg-brand text-white shadow-sm' : 'text-slate-400'}`}>{g}</button>))}
+                    </div></div></div>
+                    <div><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">手機號碼</span><input type="tel" required placeholder="09XX-XXX-XXX" className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-1 focus:ring-brand font-bold" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
+                    <div><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">備註需求 (選填)</span><textarea placeholder="過敏需求、需要兒童椅等..." className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-1 focus:ring-brand font-bold min-h-[80px] resize-none" value={formData.remarks} onChange={e => setFormData({...formData, remarks: e.target.value})} /></div>
+                    <button disabled={loading || !formData.time} className="w-full bg-accent text-white py-5 rounded-[1.8rem] font-black text-lg disabled:bg-slate-300 shadow-xl shadow-red-900/10 mt-2 btn-transition btn-active uppercase tracking-tighter italic">{loading ? "處理中..." : formData.time ? `確認預約 ${formData.time}` : "請先選擇預約時間"}</button>
                   </form>
                 </div>
               ) : (
                 <div className="animate-in zoom-in-95 fade-in duration-600 text-center pt-10">
-                  <div className="bg-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden text-brand">
+                  <div className="bg-white p-8 rounded-[3.5rem] shadow-2xl relative overflow-hidden text-brand border-2 border-white/10">
                     <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-brand via-gold to-accent" />
-                    <div className="mb-6 flex justify-center"><div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center text-green-600 shadow-inner"><Icons.CheckCircle2 /></div></div>
-                    <h1 className="text-2xl font-bold mb-2 italic">預約成功</h1>
-                    <div className="bg-slate-50 rounded-3xl p-6 text-left space-y-4 mb-8 border border-slate-200 shadow-inner">
-                      <div className="flex justify-between items-center border-b pb-3 font-bold"><span>日期</span><span>{lastBooking?.date}</span></div>
-                      <div className="flex justify-between items-center border-b pb-3 font-bold"><span>時間</span><span className="text-accent">{lastBooking?.time}</span></div>
-                      <div className="flex justify-between items-center border-b pb-3 font-bold"><span>貴賓</span><span>{lastBooking?.name} {lastBooking?.gender}</span></div>
+                    <div className="mb-6 flex justify-center"><div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center text-green-600 shadow-inner"><Icons.CheckCircle2 size={56} /></div></div>
+                    <h1 className="text-2xl font-bold mb-2 italic tracking-tighter text-brand text-shadow">預約成功！</h1>
+                    <div className="bg-slate-50 rounded-[2.5rem] p-8 text-left space-y-5 mb-8 border border-slate-100 shadow-inner font-bold">
+                      <div className="flex justify-between items-center border-b border-white pb-3"><span>日期時間</span><span className="text-accent font-black tracking-tight">{lastBooking?.date} {lastBooking?.time}</span></div>
+                      <div className="flex justify-between items-center border-b border-white pb-3"><span>貴賓大名</span><span>{lastBooking?.name} {lastBooking?.gender}</span></div>
+                      <div className="flex justify-between items-center"><span>用餐人數</span><span>{lastBooking?.guests} 位</span></div>
                     </div>
-                    <button onClick={() => setCustomerStep('form')} className="w-full bg-brand text-white py-4 rounded-2xl font-bold btn-transition btn-active shadow-xl">返回首頁</button>
+                    <button onClick={() => setCustomerStep('form')} className="w-full bg-brand text-white py-4 rounded-2xl font-bold btn-transition btn-active shadow-xl shadow-brand/20">返回訂位首頁</button>
                   </div>
                 </div>
               )
             ) : (
+              /* --- 店長端區域 --- */
               !isAdminAuth ? (
                 <div className="animate-in fade-in zoom-in-95 duration-500 pt-20">
                   <div className="bg-[#16325B] p-10 rounded-[3rem] shadow-2xl border border-white/10 text-center">
-                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gold"><Icons.Lock /></div>
-                    <h2 className="text-xl font-bold text-white mb-6">店長管理登入</h2>
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gold font-black shadow-lg shadow-brand/50"><Icons.Lock /></div>
+                    <h2 className="text-xl font-bold text-white mb-6 tracking-widest uppercase italic font-black text-gold">管理員登入</h2>
                     <form onSubmit={handleAdminLogin} className="space-y-6">
                       <input type="password" inputMode="numeric" pattern="[0-9]*" autoFocus className="w-full bg-brand text-white p-5 rounded-2xl text-center text-3xl font-bold tracking-[0.5em] outline-none border border-white/10 focus:border-gold" placeholder="••••" maxLength={4} value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
-                      <button type="submit" className="w-full bg-amber-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg btn-active">解鎖進入</button>
+                      <button type="submit" className="w-full bg-amber-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg btn-active">進入管理看板</button>
                     </form>
                   </div>
                 </div>
               ) : (
+                /* --- 店長看板 (加入月曆切換功能) --- */
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 text-left">
-                  <div className="flex flex-col gap-4 mb-2">
-                    <div className="flex items-center justify-between px-2">
-                      <h2 className="text-xl font-bold text-gold tracking-wide italic">MANAGEMENT</h2>
-                      <div className="flex gap-2">
-                        <button onClick={generateTestData} className="flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-900/40 px-3 py-1 rounded-full border border-amber-500/30 hover:bg-amber-800 btn-active"><Icons.Zap /> 生成測試單</button>
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-green-400 bg-green-900/30 px-3 py-1 rounded-full border border-green-500/30"><div className="w-1.5 h-1.5 rounded-full bg-green-50 animate-pulse" />Live</div>
-                      </div>
+                  <div className="flex flex-col gap-4 mb-2 bg-[#16325B] p-6 rounded-[2.5rem] shadow-xl border border-white/5">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-black text-gold tracking-tighter italic">預約管理儀表板</h2>
+                      <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 text-white rounded-full text-[11px] font-black shadow-lg shadow-emerald-900/40 btn-active btn-transition uppercase tracking-widest">
+                        <Icons.Plus /> 手動建立新訂單
+                      </button>
                     </div>
-                    <div className="flex items-center gap-2 bg-[#16325B] p-2 rounded-2xl border border-white/5 shadow-lg">
-                      <button onClick={() => { const d = new Date(adminDate); d.setDate(d.getDate() - 1); setAdminDate(d.toISOString().split('T')[0]); }} className="p-3 hover:bg-white/5 rounded-xl text-slate-300 btn-active"><Icons.ChevronLeft /></button>
-                      <div className="flex-1 text-center font-bold text-sm text-white flex justify-center gap-2 tracking-tighter"><Icons.Calendar />{adminDate}</div>
-                      <button onClick={() => { const d = new Date(adminDate); d.setDate(d.getDate() + 1); setAdminDate(d.toISOString().split('T')[0]); }} className="p-3 hover:bg-white/5 rounded-xl text-slate-300 btn-active"><Icons.ChevronRight /></button>
+                    
+                    {/* 日期選擇器：包含左右箭頭與隱藏式月曆輸入框 */}
+                    <div className="flex items-center gap-2 bg-brand/50 p-2 rounded-2xl border border-white/5 shadow-inner">
+                      <button onClick={() => { const d = new Date(adminDate); d.setDate(d.getDate() - 1); setAdminDate(d.toISOString().split('T')[0]); }} className="p-3 hover:bg-white/10 rounded-xl text-slate-300 btn-active btn-transition"><Icons.ChevronLeft /></button>
+                      
+                      <div className="flex-1 text-center font-bold text-sm text-white relative flex justify-center items-center gap-2 tracking-tighter font-mono italic underline decoration-gold/30 group">
+                        <Icons.Calendar className="text-gold" />
+                        <span>{adminDate}</span>
+                        {/* 隱藏但覆蓋整塊文字的月曆輸入框 */}
+                        <input 
+                           type="date"
+                           className="absolute inset-0 opacity-0 cursor-pointer date-input-hidden"
+                           value={adminDate}
+                           onChange={e => setAdminDate(e.target.value)}
+                        />
+                      </div>
+
+                      <button onClick={() => { const d = new Date(adminDate); d.setDate(d.getDate() + 1); setAdminDate(d.toISOString().split('T')[0]); }} className="p-3 hover:bg-white/10 rounded-xl text-slate-300 btn-active btn-transition"><Icons.ChevronRight /></button>
+                    </div>
+                    <div className="text-center">
+                       <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest opacity-50">☝ 點擊日期可直接選擇月曆</span>
                     </div>
                   </div>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-4 pb-20">
                     {adminFilteredReservations.length === 0 ? (
-                      <div className="py-24 text-center bg-[#16325B] rounded-[2rem] border border-white/5 text-slate-500 text-xs font-bold tracking-widest uppercase shadow-inner">今日尚無訂位</div>
+                      <div className="py-24 text-center bg-[#16325B] rounded-[3rem] border border-white/5 text-slate-500 text-xs font-bold tracking-widest uppercase shadow-inner italic">此日期目前尚無任何預約紀錄</div>
                     ) : (
                       adminFilteredReservations.map(res => (
-                        <div key={res.id} className={`p-5 rounded-[2rem] border btn-transition ${
-                          res.status === 'arrived' ? 'bg-green-900/20 border-green-700/30 opacity-80' : 
+                        <div key={res.id} className={`p-6 rounded-[2.5rem] border btn-transition ${
+                          res.status === 'arrived' ? 'bg-emerald-900/20 border-emerald-700/30 opacity-90 shadow-inner' : 
                           res.status === 'cancelled' ? 'bg-slate-900 border-slate-700 opacity-50' : 
-                          'bg-white border-slate-200'
+                          'bg-white border-slate-200 shadow-md'
                         }`}>
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-4">
-                              <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center shadow-md ${
-                                res.status === 'arrived' ? 'bg-green-700 text-white' : 
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-5">
+                              <div className={`w-16 h-16 rounded-[1.4rem] flex flex-col items-center justify-center shadow-lg ${
+                                res.status === 'arrived' ? 'bg-emerald-700 text-white shadow-emerald-900/20' : 
                                 res.status === 'cancelled' ? 'bg-slate-700 text-slate-400' : 
-                                'bg-brand text-white'
+                                'bg-brand text-white font-mono'
                               }`}>
-                                <span className="text-[9px] font-bold opacity-60 uppercase">時間</span>
-                                <span className="text-lg font-bold leading-none">{res.time}</span>
+                                <span className="text-[9px] font-bold opacity-60 uppercase tracking-tighter">時間</span>
+                                <span className="text-xl font-black leading-none tracking-tight">{res.time}</span>
                               </div>
                               <div>
-                                <div className={`font-bold text-lg flex items-center gap-2 ${res.status === 'arrived' || res.status === 'cancelled' ? 'text-slate-400' : 'text-brand'}`}>
+                                <div className={`font-black text-lg flex items-center gap-2 ${res.status === 'arrived' || res.status === 'cancelled' ? 'text-slate-400' : 'text-brand'}`}>
                                   {res.name} {res.gender} 
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full border border-current">{res.guests} 位</span>
-                                  {res.status === 'cancelled' && <span className="text-[10px] bg-red-900/50 text-red-400 px-2 rounded-full font-black">已取消</span>}
+                                  <span className="text-[10px] px-2.5 py-0.5 rounded-full border border-current font-black tracking-tighter">{res.guests} P</span>
+                                  {res.status === 'cancelled' && <span className="text-[10px] bg-red-900/50 text-red-400 px-2.5 py-0.5 rounded-full font-black uppercase italic tracking-widest">已取消</span>}
                                 </div>
-                                <div className="text-slate-400 text-xs font-bold tracking-tight">{res.phone}</div>
+                                <div className="text-slate-400 text-xs font-bold tracking-widest font-mono mt-0.5">{res.phone}</div>
                               </div>
                             </div>
                             
                             <div className="flex gap-2">
                               {res.status === 'booked' && (
-                                <React.Fragment>
-                                  <button onClick={() => setEditingId(editingId === res.id ? null : res.id)} className="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-gold hover:text-brand btn-transition shadow-sm btn-active" title="編輯桌號">
-                                    <Icons.Edit />
+                                <Fragment>
+                                  <button onClick={() => { setEditingId(editingId === res.id ? null : res.id); setTempTableIds(res.tableIds || [res.tableId]); }} className={`p-3.5 rounded-2xl btn-transition shadow-sm btn-active ${editingId === res.id ? 'bg-gold text-brand shadow-[0_0_15px_rgba(253,230,138,0.5)]' : 'bg-slate-100 text-slate-500 hover:bg-gold'}`} title="手動修改桌號"><Icons.Edit /></button>
+                                  <button onClick={() => handleCancel(res.id)} className="p-3.5 bg-red-50 text-red-400 rounded-2xl hover:bg-red-500 hover:text-white btn-transition shadow-sm btn-active" title="取消訂單"><Icons.Trash /></button>
+                                  <button onClick={() => handleCheckIn(res.id)} className="bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white px-5 py-2 rounded-2xl flex flex-col items-center justify-center btn-transition shadow-sm shadow-emerald-900/10 btn-active">
+                                    <Icons.CheckCircle2 /><span className="text-[9px] font-black uppercase mt-0.5 tracking-tighter italic">入席</span>
                                   </button>
-                                  <button onClick={() => handleCancel(res.id)} className="p-2.5 bg-slate-100 text-red-400 rounded-xl hover:bg-red-500 hover:text-white btn-transition shadow-sm btn-active" title="取消訂位">
-                                    <Icons.Trash />
-                                  </button>
-                                  <button onClick={() => handleCheckIn(res.id)} className="bg-slate-100 text-green-600 hover:bg-green-600 hover:text-white px-4 py-1.5 rounded-xl flex flex-col items-center justify-center btn-transition shadow-sm btn-active">
-                                    <Icons.CheckCircle2 />
-                                    <span className="text-[8px] font-black uppercase mt-0.5 tracking-tighter">Arrived</span>
-                                  </button>
-                                </React.Fragment>
+                                </Fragment>
                               )}
-                              {res.status === 'cancelled' && (
-                                <button onClick={() => handleRestore(res.id)} className="px-4 py-2 bg-brand text-gold rounded-xl flex items-center gap-2 text-[10px] font-black shadow-lg btn-active">
-                                  <Icons.RotateCcw /> 恢復訂位
+                              {(res.status === 'cancelled' || res.status === 'arrived') && (
+                                <button onClick={() => handleRestore(res.id)} className="p-3.5 bg-brand text-gold rounded-2xl flex items-center gap-2 text-[11px] font-black shadow-lg btn-active btn-transition tracking-widest">
+                                  <Icons.RotateCcw size={18} /> 撤銷狀態
                                 </button>
-                              )}
-                              {res.status === 'arrived' && (
-                                <div className="flex items-center gap-2 animate-in zoom-in-90">
-                                  <div className="text-green-500"><Icons.CheckCircle2 /></div>
-                                  <button onClick={() => handleRestore(res.id)} className="p-2 bg-slate-100 text-slate-400 rounded-xl hover:bg-slate-200 btn-transition btn-active" title="誤按撤銷入席">
-                                    <Icons.RotateCcw />
-                                  </button>
-                                </div>
                               )}
                             </div>
                           </div>
 
+                          {/* 編輯桌位區域 (選完再按確定) */}
                           {editingId === res.id && (
-                            <div className="mb-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-2">
-                              <span className="text-[10px] font-black text-slate-400 uppercase block mb-2">手動換位：</span>
-                              <div className="grid grid-cols-3 gap-2">
-                                <select 
-                                  className="col-span-2 p-2 bg-white border border-slate-200 rounded-lg text-sm text-brand font-bold shadow-sm outline-none focus:ring-1 focus:ring-gold"
-                                  value={res.tableId}
-                                  onChange={(e) => handleUpdateTable(res.id, e.target.value)}
-                                >
-                                  {TABLES.filter(t => (parseInt(res.guests) <= 2 ? true : !t.isSub)).map(t => (
-                                    <option key={t.id} value={t.id}>{t.name}</option>
-                                  ))}
-                                </select>
-                                <button onClick={() => setEditingId(null)} className="text-[10px] font-black text-slate-400">取消</button>
+                            <div className="my-5 p-5 bg-slate-50 rounded-[2rem] border-2 border-gold animate-in zoom-in-95 shadow-inner relative z-[60]">
+                              <span className="text-[10px] font-black text-slate-400 uppercase block mb-4 italic tracking-widest text-center">正在手動調整桌位分配 (可取消原本桌位)：</span>
+                              <TableSelector selectedIds={tempTableIds} date={res.date} time={res.time} excludeId={res.id} onChange={(newIds) => setTempTableIds(newIds)} />
+                              <div className="mt-5 space-y-2">
+                                <div className="flex justify-between items-center font-mono bg-white p-3 rounded-xl border border-slate-100 shadow-sm text-[10px] font-black text-indigo-500">
+                                  <span>已選取區域：{tempTableIds.length} 個</span>
+                                  <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-brand uppercase font-black btn-transition">放棄修改</button>
+                                </div>
+                                <button onClick={() => handleUpdateTables(res.id, tempTableIds)} className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black text-xs btn-active shadow-lg transition-all border-b-4 border-emerald-800 uppercase tracking-widest shadow-emerald-500/20">確認並儲存新的桌位組合</button>
                               </div>
                             </div>
                           )}
 
-                          <div className="flex justify-between items-center text-xs font-bold pt-2 border-t border-slate-50">
-                            <div className="text-red-500 truncate max-w-[60%] font-bold italic tracking-tighter">{res.remarks && `「${res.remarks}」`}</div>
-                            <div className={`px-4 py-1.5 rounded-full shadow-sm ${
-                              res.status === 'arrived' ? 'bg-green-700 text-green-100' : 
-                              res.status === 'cancelled' ? 'bg-slate-800 text-slate-600' : 
-                              'bg-amber-100 text-amber-800'
-                            }`}>
-                              {res.status === 'cancelled' ? '座位已釋出' : 
-                               res.status === 'arrived' ? `入席：${res.tableName}` : 
-                               `桌號：${res.tableName}`}
+                          <div className="flex justify-between items-center text-xs font-bold pt-3 border-t border-slate-100">
+                            <div className="text-red-500 truncate max-w-[50%] font-black italic tracking-tighter font-mono">{res.remarks && `NOTE: 「${res.remarks}」`}</div>
+                            <div className={`px-4 py-2 rounded-full shadow-sm max-w-[50%] truncate font-mono text-[10px] font-black ${res.status === 'arrived' ? 'bg-emerald-700 text-white shadow-emerald-900/20' : res.status === 'cancelled' ? 'bg-slate-800 text-slate-600' : 'bg-brand text-gold border border-gold/20 shadow-md'}`}>
+                              {res.status === 'cancelled' ? '席位已釋出' : `分配桌號：${res.tableName}`}
                             </div>
                           </div>
                         </div>
                       ))
                     )}
                   </div>
+
+                  {/* 手動新增訂位彈窗 (大幅優化佈局與稱謂按鈕) */}
+                  {showAddModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand/95 backdrop-blur-md animate-in fade-in duration-300 font-bold">
+                      <div className="bg-[#16325B] w-full max-w-lg p-8 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10 space-y-6 max-h-[90vh] overflow-y-auto relative">
+                        <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                           <h3 className="text-2xl font-black text-gold italic tracking-tighter uppercase">手動建立新訂位</h3>
+                           <button onClick={() => setShowAddModal(false)} className="p-2.5 bg-brand text-white/50 hover:text-white rounded-full transition-colors"><Icons.X /></button>
+                        </div>
+                        
+                        <form onSubmit={handleAdminCreateBooking} className="space-y-6">
+                          {/* 第一行：姓名與稱謂 (優化：按鈕變寬，顯示完整) */}
+                          <div className="space-y-2">
+                             <span className="text-[10px] text-slate-400 uppercase tracking-widest pl-1 font-black">貴賓姓名 / 稱謂</span>
+                             <div className="flex gap-2">
+                                <input type="text" required placeholder="請輸入大名" className="flex-1 h-14 p-4 bg-brand border border-white/20 rounded-2xl outline-none text-base font-bold text-white focus:border-gold shadow-inner" value={adminForm.name} onChange={e => setAdminForm({...adminForm, name: e.target.value})} />
+                                
+                                <div className="flex bg-brand/80 p-1.5 rounded-2xl border border-white/10 shrink-0 h-14 w-[160px] shadow-2xl">
+                                  {['先生', '小姐'].map(g => (
+                                    <button 
+                                      key={g} 
+                                      type="button" 
+                                      onClick={() => setAdminForm({...adminForm, gender: g})} 
+                                      className={`flex-1 rounded-xl text-xs font-black btn-transition ${adminForm.gender === g ? 'bg-white text-brand shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                                    >
+                                      {g}
+                                    </button>
+                                  ))}
+                                </div>
+                             </div>
+                          </div>
+                          
+                          {/* 第二行：人數(寬度縮小)與手機號碼 */}
+                          <div className="flex gap-4">
+                            <div className="w-[100px] shrink-0 space-y-2">
+                               <span className="text-[10px] text-slate-400 uppercase tracking-widest pl-1 font-black">預約人數</span>
+                               <input type="number" required min="1" max="40" placeholder="P" className="w-full h-14 p-4 bg-brand border border-white/20 rounded-2xl outline-none text-base font-black text-gold focus:border-gold font-mono text-center shadow-inner" value={adminForm.guests} onChange={e => setAdminForm({...adminForm, guests: e.target.value})} />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                               <span className="text-[10px] text-slate-400 uppercase tracking-widest pl-1 font-black">聯繫手機</span>
+                               <input type="tel" required placeholder="09XX-XXX-XXX" className="w-full h-14 p-4 bg-brand border border-white/20 rounded-2xl outline-none text-base font-bold text-white focus:border-gold font-mono shadow-inner" value={adminForm.phone} onChange={e => setAdminForm({...adminForm, phone: e.target.value})} />
+                            </div>
+                          </div>
+                          
+                          {/* 第三行：日期與時間 */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                               <span className="text-[10px] text-slate-400 uppercase tracking-widest pl-1 font-black">用餐日期</span>
+                               <input type="date" required className="w-full h-14 p-4 bg-brand border border-white/20 rounded-2xl outline-none text-xs font-bold text-white focus:border-gold shadow-inner" value={adminForm.date} onChange={e => setAdminForm({...adminForm, date: e.target.value})} />
+                            </div>
+                            <div className="space-y-2">
+                               <span className="text-[10px] text-slate-400 uppercase tracking-widest pl-1 font-black">進場時間</span>
+                               <input type="time" required className="w-full h-14 p-4 bg-brand border border-white/20 rounded-2xl outline-none text-base font-bold text-white focus:border-gold shadow-inner" value={adminForm.time} onChange={e => setAdminForm({...adminForm, time: e.target.value})} />
+                            </div>
+                          </div>
+
+                          {/* 桌位選取區 */}
+                          <div className="space-y-3 bg-brand/30 p-5 rounded-[2.5rem] border border-white/5 shadow-inner text-center">
+                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic block mb-2">手動配位：</span>
+                             <TableSelector selectedIds={adminForm.tableIds} date={adminForm.date} time={adminForm.time} onChange={(ids) => setAdminForm({...adminForm, tableIds: ids})} />
+                             <div className="text-[10px] text-gold font-mono uppercase tracking-widest bg-brand p-3 rounded-[1.5rem] border border-white/5 shadow-inner mt-4 border-b-2 border-gold/10">
+                               目前勾選區域：{adminForm.tableIds.join(', ') || '請點擊上方區域按鈕'}
+                             </div>
+                          </div>
+
+                          <textarea placeholder="選填特殊需求（過敏、兒童椅、慶生需求...）" className="w-full p-4 bg-brand border border-white/20 rounded-2xl outline-none text-sm font-bold min-h-[80px] resize-none text-white placeholder:text-white/10 shadow-inner" value={adminForm.remarks} onChange={e => setAdminForm({...adminForm, remarks: e.target.value})} />
+                          <button disabled={loading} className="w-full bg-gold text-brand py-5 rounded-[2.5rem] font-black text-xl btn-active shadow-2xl uppercase tracking-tighter italic border-b-4 border-yellow-600 transition-all">確認並存檔新預約資料</button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             )}
           </div>
-          <footer className="fixed bottom-0 left-0 right-0 p-4 pointer-events-none flex justify-center"><div className="bg-brand/90 backdrop-blur-md text-white/20 text-[8px] px-6 py-2 rounded-full font-bold border border-white/5 tracking-widest uppercase shadow-2xl">JIHE | Pro Management v13.0 | Fix Undo UI</div></footer>
+          <footer className="fixed bottom-0 left-0 right-0 p-5 pointer-events-none flex justify-center"><div className="bg-brand/90 backdrop-blur-md text-white/20 text-[9px] px-8 py-2.5 rounded-full font-bold border border-white/5 tracking-[0.3em] uppercase shadow-2xl tracking-tighter">極禾鍋物職人 | 北市延平店管理系統</div></footer>
         </div>
       );
     }
