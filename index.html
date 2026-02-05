@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>極禾鍋物職人 | 線上訂位系統</title>
+  <title>極禾鍋物職人 | 北市延平店訂位系統</title>
   
   <!-- 1. 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Tailwind 設定 -->
   <script>
     tailwind.config = {
       theme: {
@@ -34,10 +33,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
   <style>
-    body { background-color: #0F2849; color: white; margin: 0; font-family: sans-serif; }
+    body { background-color: #0F2849; color: white; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     * { -webkit-tap-highlight-color: transparent; }
     
-    /* 載入動畫 */
     .loader {
       border: 4px solid rgba(255, 255, 255, 0.1);
       border-left-color: #FDE68A;
@@ -48,34 +46,30 @@
       margin: 0 auto 20px auto;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* 平滑過渡 */
+    .btn-transition { transition: all 0.2s ease-in-out; }
   </style>
 </head>
 <body class="bg-brand text-slate-100 selection:bg-amber-300 selection:text-brand">
   
   <div id="root" class="min-h-screen flex flex-col items-center justify-center p-4 text-center">
     <div class="loader"></div>
-    <div class="text-gold font-bold text-xl mb-2">極禾鍋物職人</div>
-    <div class="text-slate-400 text-sm">系統啟動中...</div>
+    <div class="text-gold font-bold text-xl mb-2 italic">極禾鍋物職人</div>
+    <div class="text-slate-400 text-sm">系統載入中...</div>
   </div>
 
   <script type="text/babel" data-presets="env,react">
     // --- 圖示組件 ---
     const Icons = {
       Store: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"/></svg>,
-      User: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
       Lock: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
       PhoneCall: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/><path d="M14.05 2a9 9 0 0 1 8 7.94"/><path d="M14.05 6A5 5 0 0 1 18 10"/></svg>,
       AlertTriangle: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
       CheckCircle2: () => <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
-      ArrowLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
-      KeyRound: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>,
       ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
       ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
-      CalendarDays: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>,
-      Utensils: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>,
-      UserCheck: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>,
-      Zap: () => <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-      MessageSquare: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Zap: () => <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
     };
 
     // --- Firebase 配置 ---
@@ -96,38 +90,37 @@
     const db = firebase.firestore();
     const appId = 'jiheyenping-reservations';
 
-    const { useState, useEffect, useMemo } = React;
+    const { useState, useEffect, useMemo, Fragment } = React;
 
-    // --- 輔助函式 ---
+    // --- 輔助：當地日期 ---
     const getLocalYYYMMDD = (offsetDays = 0) => {
       const d = new Date();
       d.setDate(d.getDate() + offsetDays);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      return d.toISOString().split('T')[0];
     };
 
+    // --- 常數 ---
     const DINING_TIME = 90;
     const CLEANING_TIME = 10;
-    const TOTAL_CYCLE = DINING_TIME + CLEANING_TIME;
-    const LUNCH_LIMIT = "13:30";
-    const DINNER_LIMIT = "20:30";
+    const TOTAL_CYCLE = DINING_TIME + CLEANING_TIME; // 100 分鐘
+    const LUNCH_END = "15:00";
+    const DINNER_END = "22:00";
+    const LUNCH_WARN_START = "13:30";
+    const DINNER_WARN_START = "20:30";
 
     const MIN_DATE = getLocalYYYMMDD(1);
     const MAX_DATE = getLocalYYYMMDD(7);
 
-    const TABLES = [
-      { id: 'T1', name: '桌號 1', capacity: 4, isSub: false, subs: ['T1-In', 'T1-Out'] },
-      { id: 'T1-In', name: '1 內', capacity: 2, isSub: true, parent: 'T1' },
-      { id: 'T1-Out', name: '1 外', capacity: 2, isSub: true, parent: 'T1' },
-      { id: 'T2', name: '桌號 2', capacity: 4, isSub: false, subs: ['T2-In', 'T2-Out'] },
-      { id: 'T2-In', name: '2 內', capacity: 2, isSub: true, parent: 'T2' },
-      { id: 'T2-Out', name: '2 外', capacity: 2, isSub: true, parent: 'T2' },
-      { id: 'T3', name: '桌號 3', capacity: 4, isSub: false, subs: ['T3-In', 'T3-Out'] },
-      { id: 'T3-In', name: '3 內', capacity: 2, isSub: true, parent: 'T3' },
-      { id: 'T3-Out', name: '3 外', capacity: 2, isSub: true, parent: 'T3' },
-    ];
+    // --- 生成桌位資料 (A1-B7) ---
+    const tableCodes = ['A1', 'A2', 'A3', 'A5', 'A6', 'A7', 'A8', 'A9', 'B1', 'B2', 'B3', 'B5', 'B6', 'B7'];
+    const TABLES = [];
+    tableCodes.forEach(code => {
+      // 4人桌主體
+      TABLES.push({ id: code, name: code, capacity: 4, isSub: false, subs: [`${code}-In`, `${code}-Out`] });
+      // 2人子桌 (拆桌)
+      TABLES.push({ id: `${code}-In`, name: `${code} 內`, capacity: 2, isSub: true, parent: code });
+      TABLES.push({ id: `${code}-Out`, name: `${code} 外`, capacity: 2, isSub: true, parent: code });
+    });
 
     function App() {
       const [user, setUser] = useState(null);
@@ -143,6 +136,7 @@
       
       const [formData, setFormData] = useState({
         name: '',
+        gender: '先生', // 先生/小姐
         phone: '',
         guests: 2,
         date: MIN_DATE,
@@ -151,34 +145,25 @@
       });
 
       useEffect(() => {
-        if (typeof firebase === 'undefined') return;
-        const auth = firebase.auth();
         auth.signInAnonymously().catch(console.error);
         return auth.onAuthStateChanged(setUser);
       }, []);
 
       useEffect(() => {
-        if (!user || typeof firebase === 'undefined') return;
-        const db = firebase.firestore();
-        const appId = 'jiheyenping-reservations';
-        
-        // 加上錯誤偵測，若沒開權限會跳提示
+        if (!user) return;
         return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations')
           .onSnapshot((snapshot) => {
             setReservations(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-          }, (error) => {
-            console.error("Firebase Sync Error:", error);
-            if (error.code === 'permission-denied') {
-              alert("⚠️ 連線權限錯誤\n\n請到 Firebase Console > Firestore Database > Rules\n將 allow read, write: if false; 改為 if true;");
-            }
           });
       }, [user]);
 
+      // --- 核心：排位邏輯 ---
       const findAvailableTable = (guestCount, targetDate, targetTime, currentReservations) => {
         const targetStart = new Date(`${targetDate} ${targetTime}`).getTime();
         const targetEnd = targetStart + TOTAL_CYCLE * 60000;
 
-        const occupiedTableIds = currentReservations
+        // 找出衝突的訂位
+        const occupiedIds = currentReservations
           .filter(res => {
             if (res.date !== targetDate) return false;
             const resStart = new Date(`${res.date} ${res.time}`).getTime();
@@ -188,14 +173,20 @@
           .map(r => r.tableId);
 
         if (guestCount > 2) {
-          const bigTables = TABLES.filter(t => !t.isSub && t.capacity >= guestCount);
+          // 3-4人：找整桌。整桌 A1 要能用，必須 A1, A1-In, A1-Out 都沒人訂位
+          const bigTables = TABLES.filter(t => !t.isSub);
           for (let t of bigTables) {
-            if (!occupiedTableIds.includes(t.id) && !t.subs.some(sid => occupiedTableIds.includes(sid))) return t;
+            const isSelfFree = !occupiedIds.includes(t.id);
+            const areSubsFree = t.subs.every(sid => !occupiedIds.includes(sid));
+            if (isSelfFree && areSubsFree) return t;
           }
         } else {
+          // 1-2人：優先找子桌。子桌 A1-In 要能用，必須 A1-In 與 母桌 A1 都沒人訂位
           const subTables = TABLES.filter(t => t.isSub);
           for (let s of subTables) {
-            if (!occupiedTableIds.includes(s.id) && !occupiedTableIds.includes(s.parent)) return s;
+            const isSelfFree = !occupiedIds.includes(s.id);
+            const isParentFree = !occupiedIds.includes(s.parent);
+            if (isSelfFree && isParentFree) return s;
           }
         }
         return null;
@@ -219,30 +210,15 @@
         return { lunch: generate(11, 30, 14, 0), dinner: generate(17, 0, 21, 0) };
       }, [formData.date, formData.guests, reservations]);
 
-      const validatePhone = (phone) => {
-        const cleanPhone = phone.replace(/[\s-]/g, '');
-        const phoneRegex = /^09\d{8}$/;
-        return { isValid: phoneRegex.test(cleanPhone), cleanPhone };
-      };
-
       const handleBooking = async (e) => {
         e.preventDefault();
         if (!formData.time) return;
-
-        const { isValid, cleanPhone } = validatePhone(formData.phone);
-        if (!isValid) {
-          alert("請輸入正確的手機號碼（09開頭共10碼）");
-          return;
-        }
+        const cleanPhone = formData.phone.replace(/[\s-]/g, '');
+        if (!/^09\d{8}$/.test(cleanPhone)) { alert("手機號碼格式錯誤"); return; }
 
         setLoading(true);
-
         const table = findAvailableTable(parseInt(formData.guests), formData.date, formData.time, reservations);
-        if (!table) {
-          alert("抱歉，該時段已滿。");
-          setLoading(false);
-          return;
-        }
+        if (!table) { alert("此時段位置已滿，請更換時間。"); setLoading(false); return; }
 
         const finalData = {
           ...formData,
@@ -253,103 +229,60 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        const db = firebase.firestore();
-        const appId = 'jiheyenping-reservations';
-
         try {
           await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').add(finalData);
           setLastBooking(finalData);
           setCustomerStep('success');
           setFormData({ ...formData, name: '', phone: '', time: '', remarks: '' });
-        } catch (err) {
-          alert("預約失敗，請稍後再試。");
-        } finally {
-          setLoading(false);
-        }
+        } catch (err) { alert("預約失敗"); } finally { setLoading(false); }
       };
 
       const handleCheckIn = async (id) => {
-        const db = firebase.firestore();
-        const appId = 'jiheyenping-reservations';
         try {
           await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ status: 'arrived' });
-        } catch (err) {
-          console.error(err);
-          alert("更新失敗：" + err.message);
-        }
-      };
-
-      const generateTestData = async () => {
-        setLoading(true);
-        const today = getLocalYYYMMDD(0); 
-        const db = firebase.firestore();
-        const appId = 'jiheyenping-reservations';
-        try {
-          await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').add({
-            name: "測試人員",
-            phone: "0900000000",
-            guests: "2",
-            date: today,
-            time: "12:00",
-            tableId: "T1",
-            tableName: "桌號 1 (測試)",
-            status: "booked",
-            remarks: "這是店長測試用的資料",
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          setAdminDate(today);
-        } catch (err) {
-          console.error(err);
-          alert("生成失敗：" + err.message);
-        } finally {
-          setLoading(false);
-        }
+        } catch (err) { alert("更新失敗"); }
       };
 
       const handleAdminLogin = (e) => {
         e.preventDefault();
-        if (passwordInput === '8888') {
-          setIsAdminAuth(true);
-          setPasswordInput('');
-        } else {
-          alert("密碼錯誤！");
-          setPasswordInput('');
-        }
+        if (passwordInput === '8888') { setIsAdminAuth(true); setPasswordInput(''); }
+        else { alert("密碼錯誤！"); setPasswordInput(''); }
       };
 
-      const showTimeWarning = useMemo(() => {
-        if (!formData.time) return false;
-        if (activeMeal === 'lunch' && formData.time >= LUNCH_LIMIT) return "午餐營業至 15:00";
-        if (activeMeal === 'dinner' && formData.time >= DINNER_LIMIT) return "晚餐營業至 22:00";
+      // --- 用餐剩餘時間提醒邏輯 ---
+      const getTimeWarningInfo = useMemo(() => {
+        if (!formData.time) return null;
+        const closingTime = activeMeal === 'lunch' ? LUNCH_END : DINNER_END;
+        const warnStart = activeMeal === 'lunch' ? LUNCH_WARN_START : DINNER_WARN_START;
+        
+        if (formData.time >= warnStart) {
+          const [h, m] = formData.time.split(':').map(Number);
+          const [ch, cm] = closingTime.split(':').map(Number);
+          const diffMin = (ch * 60 + cm) - (h * 60 + m);
+          return {
+            msg: `提醒：本時段營業至 ${closingTime}，用餐時間僅剩 ${diffMin} 分鐘，不足 90 分鐘。`,
+            closingTime
+          };
+        }
         return null;
       }, [formData.time, activeMeal]);
 
-      const adminFilteredReservations = useMemo(() => {
-        return reservations
-          .filter(r => r.date === adminDate)
-          .sort((a, b) => a.time.localeCompare(b.time));
-      }, [reservations, adminDate]);
-
       return (
         <div className="min-h-screen bg-brand text-slate-100 pb-20 font-sans selection:bg-gold selection:text-brand">
+          {/* Navbar */}
           <nav className="bg-brand/90 backdrop-blur-md border-b border-white/10 px-4 py-4 flex justify-between items-center sticky top-0 z-50">
-            <div className="flex flex-col">
-               <div className="flex items-center gap-2 font-bold text-gold text-lg tracking-wide">
+            <div className="flex flex-col text-left">
+              <div className="flex items-center gap-2 font-bold text-gold text-lg tracking-wide">
                 <Icons.Store />
                 <span>極禾鍋物職人</span>
-               </div>
-               <span className="text-[10px] text-slate-400 tracking-widest pl-7">北市延平店</span>
+              </div>
+              <span className="text-[10px] text-slate-400 tracking-widest pl-7">北市延平店訂位系統</span>
             </div>
-            
             <button 
-              onClick={() => {
-                setView(view === 'customer' ? 'admin' : 'customer');
-                setCustomerStep('form');
-                if (view === 'admin') setIsAdminAuth(false);
-              }}
-              className="px-4 py-2 bg-white/10 border border-white/20 text-gold rounded-lg text-[10px] font-bold hover:bg-white/20 transition-all flex items-center gap-2"
+              onClick={() => { setView(view === 'customer' ? 'admin' : 'customer'); setCustomerStep('form'); if (view === 'admin') setIsAdminAuth(false); }}
+              className="px-4 py-2 bg-white/5 border border-white/20 text-gold rounded-lg text-[10px] font-bold hover:bg-white/10 btn-transition flex items-center gap-2"
             >
-              {view === 'customer' ? <React.Fragment><Icons.Lock /> 店長專用</React.Fragment> : <React.Fragment><Icons.User /> 返回訂位</React.Fragment>}
+              {view === 'customer' ? <Fragment><Icons.Lock /> 店長專用</Fragment> : <Fragment><Icons.Store /> 返回訂位</Fragment>}
             </button>
           </nav>
 
@@ -357,140 +290,89 @@
             {view === 'customer' ? (
               customerStep === 'form' ? (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  <div className="bg-[#16325B] p-6 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                    
-                    <h1 className="text-2xl font-bold mb-3 text-white">線上預約</h1>
-                    <div className="space-y-3 text-sm text-slate-300 font-light leading-relaxed">
-                      <p>
-                        <span className="text-gold font-bold">● 開放時間：</span> 
-                        隔日起至 7 日內之訂位
-                      </p>
-                      <p>
-                        <span className="text-gold font-bold">● 人數限制：</span> 
-                        本系統僅接受 4 人以下預約
-                      </p>
-                      <div className="bg-brand p-4 rounded-xl border border-white/5 mt-2">
-                        <p className="mb-2 text-xs text-slate-400">如有其他需求敬請來電洽詢：</p>
-                        <a 
-                          href="tel:0228166658" 
-                          className="flex items-center gap-2 text-xl font-bold text-gold hover:text-white transition-colors"
-                        >
-                          <Icons.PhoneCall /> 02-28166658
-                        </a>
-                      </div>
+                  {/* 公告 */}
+                  <div className="bg-[#16325B] p-6 rounded-3xl border border-white/10 shadow-xl text-left">
+                    <h1 className="text-xl font-bold mb-3 text-gold">線上預訂說明</h1>
+                    <ul className="space-y-2 text-sm text-slate-300 font-light">
+                      <li>● 開放範圍：隔日起至 7 日內之訂位</li>
+                      <li>● 人數限制：4 人以下 (含幼童)</li>
+                      <li>● 用餐時間：<span className="text-amber-300 font-bold">90 分鐘</span></li>
+                    </ul>
+                    <div className="mt-6 pt-4 border-t border-white/5 text-center">
+                      <p className="text-xs text-slate-400 mb-2">如有 4 位以上或其他需求敬請來電洽詢：</p>
+                      <a href="tel:0228166658" className="inline-flex items-center gap-2 text-xl font-black text-amber-200 hover:text-white btn-transition">
+                        <Icons.PhoneCall /> 02-28166658
+                      </a>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-3xl p-6 text-brand shadow-lg">
+                  {/* 表單 */}
+                  <div className="bg-white rounded-3xl p-6 text-brand shadow-lg text-left">
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="space-y-1">
                         <span className="text-xs font-bold text-slate-500 ml-1">用餐日期</span>
-                        <input 
-                          type="date"
-                          className="w-full p-3 bg-slate-100 rounded-xl border-none outline-none font-bold text-sm"
-                          value={formData.date}
-                          min={MIN_DATE}
-                          max={MAX_DATE}
-                          onChange={e => setFormData({...formData, date: e.target.value, time: ''})}
-                        />
+                        <input type="date" className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-sm" value={formData.date} min={MIN_DATE} max={MAX_DATE} onChange={e => setFormData({...formData, date: e.target.value, time: ''})} />
                       </div>
                       <div className="space-y-1">
                         <span className="text-xs font-bold text-slate-500 ml-1">人數</span>
-                        <select 
-                          className="w-full p-3 bg-slate-100 rounded-xl border-none outline-none font-bold text-lg"
-                          value={formData.guests}
-                          onChange={e => setFormData({...formData, guests: e.target.value, time: ''})}
-                        >
+                        <select className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-lg" value={formData.guests} onChange={e => setFormData({...formData, guests: e.target.value, time: ''})}>
                           {[1,2,3,4].map(n => <option key={n} value={n}>{n} 位</option>)}
                         </select>
                       </div>
                     </div>
 
                     <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
-                      <button 
-                        onClick={() => {setActiveMeal('lunch'); setFormData({...formData, time: ''})}}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeMeal === 'lunch' ? 'bg-brand text-white shadow-md' : 'text-slate-500'}`}
-                      >
-                        午餐時段
-                      </button>
-                      <button 
-                        onClick={() => {setActiveMeal('dinner'); setFormData({...formData, time: ''})}}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeMeal === 'dinner' ? 'bg-brand text-white shadow-md' : 'text-slate-500'}`}
-                      >
-                        晚餐時段
-                      </button>
+                      {['lunch', 'dinner'].map(m => (
+                        <button key={m} onClick={() => {setActiveMeal(m); setFormData({...formData, time: ''})}} className={`flex-1 py-2 rounded-lg text-sm font-bold btn-transition ${activeMeal === m ? 'bg-brand text-white shadow-md' : 'text-slate-500'}`}>
+                          {m === 'lunch' ? '午餐時段' : '晚餐時段'}
+                        </button>
+                      ))}
                     </div>
 
-                    <div className="min-h-[140px]">
-                      {availableSlots[activeMeal].length > 0 ? (
-                        <div className="grid grid-cols-4 gap-2">
-                          {availableSlots[activeMeal].map(slot => (
-                            <button
-                              key={slot}
-                              onClick={() => setFormData({...formData, time: slot})}
-                              className={`py-3 rounded-lg text-xs font-bold transition-all border ${
-                                formData.time === slot 
-                                ? 'bg-accent text-white border-accent shadow-md transform scale-105' 
-                                : 'bg-white text-slate-600 border-slate-200 hover:border-brand hover:text-brand'
-                              }`}
-                            >
-                              {slot}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-10 text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                          <Icons.AlertTriangle />
-                          <p className="text-xs font-bold mt-2">該時段已額滿</p>
-                        </div>
-                      )}
+                    <div className="min-h-[140px] grid grid-cols-4 gap-2">
+                      {availableSlots[activeMeal].map(slot => (
+                        <button key={slot} onClick={() => setFormData({...formData, time: slot})} className={`py-3 rounded-lg text-xs font-bold btn-transition border ${formData.time === slot ? 'bg-accent text-white border-accent shadow-md scale-105' : 'bg-white text-slate-600 border-slate-200 hover:border-brand'}`}>
+                          {slot}
+                        </button>
+                      ))}
+                      {availableSlots[activeMeal].length === 0 && <div className="col-span-4 py-10 text-center text-slate-400 text-xs font-bold border-2 border-dashed border-slate-100 rounded-2xl">該時段桌位已額滿</div>}
                     </div>
 
-                    {showTimeWarning && (
-                      <div className="mt-4 p-3 bg-amber-50 rounded-xl flex items-center gap-3 text-amber-800 border border-amber-100">
+                    {getTimeWarningInfo && (
+                      <div className="mt-4 p-3 bg-red-50 rounded-xl flex items-start gap-3 text-red-700 border border-red-100 animate-pulse">
                         <Icons.AlertTriangle />
-                        <span className="text-xs font-bold">{showTimeWarning}</span>
+                        <span className="text-xs font-bold leading-relaxed">{getTimeWarningInfo.msg}</span>
                       </div>
                     )}
                   </div>
 
-                  <form onSubmit={handleBooking} className="bg-white rounded-3xl p-6 text-brand shadow-lg space-y-4">
+                  <form onSubmit={handleBooking} className="bg-white rounded-3xl p-6 text-brand shadow-lg space-y-4 text-left">
                     <div className="space-y-4">
                       <div>
                         <span className="text-xs font-bold text-slate-500 ml-1">訂位大名</span>
-                        <input 
-                          type="text" required placeholder="請輸入姓名"
-                          className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all font-bold placeholder:font-normal"
-                          value={formData.name}
-                          onChange={e => setFormData({...formData, name: e.target.value})}
-                        />
+                        <div className="flex gap-2">
+                          <input type="text" required placeholder="請輸入姓名" className="flex-1 p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-1 focus:ring-brand font-bold" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                          <div className="flex bg-slate-100 p-1 rounded-xl h-[56px]">
+                            {['先生', '小姐'].map(g => (
+                              <button key={g} type="button" onClick={() => setFormData({...formData, gender: g})} className={`px-4 rounded-lg text-xs font-bold btn-transition ${formData.gender === g ? 'bg-brand text-white shadow-sm' : 'text-slate-400'}`}>
+                                {g}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                       <div>
                         <span className="text-xs font-bold text-slate-500 ml-1">聯絡電話</span>
-                        <input 
-                          type="tel" required placeholder="09XX-XXX-XXX"
-                          className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all font-bold placeholder:font-normal"
-                          value={formData.phone}
-                          onChange={e => setFormData({...formData, phone: e.target.value})}
-                        />
+                        <input type="tel" required placeholder="09XX-XXX-XXX" className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-1 focus:ring-brand font-bold" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                       </div>
                       <div>
-                        <span className="text-xs font-bold text-slate-500 ml-1">備註 (如有過敏或特殊需求)</span>
-                        <textarea 
-                          placeholder="請填寫您的需求..."
-                          className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all font-bold placeholder:font-normal min-h-[100px] resize-none"
-                          value={formData.remarks}
-                          onChange={e => setFormData({...formData, remarks: e.target.value})}
-                        />
+                        <span className="text-xs font-bold text-slate-500 ml-1">備註 (特殊需求或過敏)</span>
+                        <textarea placeholder="請寫下您的需求..." className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-1 focus:ring-brand font-bold min-h-[80px] resize-none" value={formData.remarks} onChange={e => setFormData({...formData, remarks: e.target.value})} />
                       </div>
                     </div>
                     
-                    <button 
-                      disabled={loading || !formData.time}
-                      className="w-full bg-accent text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:bg-slate-400 transition-all shadow-lg active:scale-[0.98] mt-4 flex justify-center items-center gap-2"
-                    >
-                      {loading ? "處理中..." : formData.time ? `確認預約 ${formData.time}` : "請先選擇時間"}
+                    <button disabled={loading || !formData.time} className="w-full bg-accent text-white py-4 rounded-xl font-bold text-lg disabled:bg-slate-300 btn-transition shadow-lg mt-2">
+                      {loading ? "處理中..." : formData.time ? `確認預約 ${formData.time}` : "請選擇時間"}
                     </button>
                   </form>
                 </div>
@@ -498,50 +380,16 @@
                 <div className="animate-in zoom-in-95 fade-in duration-600 text-center pt-10">
                   <div className="bg-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden text-brand">
                     <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-brand via-amber-500 to-accent" />
-                    
-                    <div className="mb-6 flex justify-center">
-                      <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center text-green-600 shadow-inner">
-                        <Icons.CheckCircle2 />
-                      </div>
-                    </div>
-
+                    <div className="mb-6 flex justify-center"><div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center text-green-600 shadow-inner"><Icons.CheckCircle2 /></div></div>
                     <h1 className="text-2xl font-bold mb-2">預約成功</h1>
                     <p className="text-slate-500 text-sm font-medium mb-8">感謝您的訂位，極禾鍋物期待您的光臨。</p>
-
                     <div className="bg-slate-50 rounded-3xl p-6 text-left space-y-4 mb-8 border border-slate-200">
-                      <div className="flex justify-between items-center border-b border-slate-200 pb-3">
-                        <span className="text-xs font-bold text-slate-400 uppercase">日期</span>
-                        <span className="font-bold">{lastBooking?.date}</span>
-                      </div>
-                      <div className="flex justify-between items-center border-b border-slate-200 pb-3">
-                        <span className="text-xs font-bold text-slate-400 uppercase">時間</span>
-                        <span className="font-bold text-accent">{lastBooking?.time}</span>
-                      </div>
-                      <div className="flex justify-between items-center border-b border-slate-200 pb-3">
-                        <span className="text-xs font-bold text-slate-400 uppercase">人數</span>
-                        <span className="font-bold">{lastBooking?.guests} 位</span>
-                      </div>
-                      <div className="flex justify-between items-center border-b border-slate-200 pb-3">
-                        <span className="text-xs font-bold text-slate-400 uppercase">姓名</span>
-                        <span className="font-bold">{lastBooking?.name} 貴賓</span>
-                      </div>
-                      {lastBooking?.remarks && (
-                        <div className="pt-1">
-                          <span className="text-xs font-bold text-slate-400 uppercase block mb-1">備註</span>
-                          <p className="text-sm bg-white p-3 rounded-lg text-slate-600 border border-slate-100">
-                            {lastBooking.remarks}
-                          </p>
-                        </div>
-                      )}
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-3"><span className="text-xs font-bold text-slate-400">日期</span><span className="font-bold">{lastBooking?.date}</span></div>
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-3"><span className="text-xs font-bold text-slate-400">時間</span><span className="font-bold text-red-700">{lastBooking?.time}</span></div>
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-3"><span className="text-xs font-bold text-slate-400">人數</span><span className="font-bold">{lastBooking?.guests} 位</span></div>
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-3"><span className="text-xs font-bold text-slate-400">貴賓</span><span className="font-bold">{lastBooking?.name} {lastBooking?.gender}</span></div>
                     </div>
-
-                    <button 
-                      onClick={() => setCustomerStep('form')}
-                      className="w-full bg-brand text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#16325B] transition-all shadow-xl"
-                    >
-                      <Icons.ArrowLeft />
-                      返回首頁
-                    </button>
+                    <button onClick={() => setCustomerStep('form')} className="w-full bg-brand text-white py-4 rounded-2xl font-bold btn-transition shadow-xl">返回訂位首頁</button>
                   </div>
                 </div>
               )
@@ -549,141 +397,66 @@
               !isAdminAuth ? (
                 <div className="animate-in fade-in zoom-in-95 duration-500 flex flex-col items-center justify-center pt-20">
                   <div className="bg-[#16325B] p-10 rounded-[3rem] shadow-2xl w-full border border-white/10 text-center">
-                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gold">
-                       <Icons.Lock />
-                    </div>
-                    <h2 className="text-xl font-bold text-white mb-2">極禾鍋物職人</h2>
-                    <p className="text-slate-400 text-xs font-bold mb-8 uppercase tracking-widest">店長管理系統</p>
-                    
-                    <form onSubmit={handleAdminLogin}>
-                       <div className="relative mb-6">
-                         <input 
-                           type="password" 
-                           inputMode="numeric"
-                           pattern="[0-9]*"
-                           autoFocus
-                           className="w-full bg-brand text-white p-5 rounded-2xl text-center text-2xl font-bold tracking-[0.5em] outline-none border border-white/10 focus:border-amber-400/50 transition-all placeholder:text-white/20"
-                           placeholder="••••"
-                           maxLength={4}
-                           value={passwordInput}
-                           onChange={e => setPasswordInput(e.target.value)}
-                         />
-                         <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500"><Icons.KeyRound /></span>
-                       </div>
-                       <button className="w-full bg-amber-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-amber-500 transition-all">
-                         解鎖進入
-                       </button>
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gold"><Icons.Lock /></div>
+                    <h2 className="text-xl font-bold text-white mb-6 tracking-widest">店長管理登入</h2>
+                    <form onSubmit={handleAdminLogin} className="space-y-6">
+                      <input type="password" inputMode="numeric" pattern="[0-9]*" autoFocus className="w-full bg-brand text-white p-5 rounded-2xl text-center text-3xl font-bold tracking-[0.8em] outline-none border border-white/10 focus:border-gold/50" placeholder="••••" maxLength={4} value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
+                      <button className="w-full bg-amber-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-amber-500 btn-transition">解鎖進入</button>
                     </form>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4 animate-in fade-in slide-in-from-right-8 duration-500">
+                <div className="space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 text-left">
                   <div className="flex flex-col gap-4 mb-2">
                     <div className="flex items-center justify-between px-2">
-                      <h2 className="text-xl font-bold text-gold tracking-wide">訂位名單</h2>
-                      <div className="flex gap-2">
-                         <button 
-                           onClick={generateTestData}
-                           className="flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-900/40 px-3 py-1 rounded-full border border-amber-500/30 hover:bg-amber-900/60 transition-colors"
-                         >
-                           <Icons.Zap /> 生成今日測試單
-                         </button>
-                         <div className="flex items-center gap-2 text-[10px] font-bold text-green-400 bg-green-900/30 px-3 py-1 rounded-full border border-green-500/30">
-                           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                           連線中
-                         </div>
+                      <h2 className="text-xl font-bold text-gold tracking-wide">訂位名單排位</h2>
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-green-400 bg-green-900/30 px-3 py-1 rounded-full border border-green-500/30">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />連線中
                       </div>
                     </div>
-                    
                     <div className="flex items-center gap-2 bg-[#16325B] p-2 rounded-2xl border border-white/5">
-                      <button 
-                        onClick={() => {
-                          const d = new Date(adminDate); d.setDate(d.getDate() - 1);
-                          setAdminDate(d.toISOString().split('T')[0]);
-                        }}
-                        className="p-3 hover:bg-white/5 rounded-xl transition-colors text-slate-300"
-                      >
-                        <Icons.ChevronLeft />
-                      </button>
-                      <div className="flex-1 text-center font-bold flex items-center justify-center gap-2 text-sm text-white">
-                        <Icons.CalendarDays />
-                        {adminDate}
-                      </div>
-                      <button 
-                        onClick={() => {
-                          const d = new Date(adminDate); d.setDate(d.getDate() + 1);
-                          setAdminDate(d.toISOString().split('T')[0]);
-                        }}
-                        className="p-3 hover:bg-white/5 rounded-xl transition-colors text-slate-300"
-                      >
-                        <Icons.ChevronRight />
-                      </button>
+                      <button onClick={() => { const d = new Date(adminDate); d.setDate(d.getDate() - 1); setAdminDate(d.toISOString().split('T')[0]); }} className="p-3 hover:bg-white/5 rounded-xl text-slate-300"><Icons.ChevronLeft /></button>
+                      <div className="flex-1 text-center font-bold text-sm text-white">{adminDate}</div>
+                      <button onClick={() => { const d = new Date(adminDate); d.setDate(d.getDate() + 1); setAdminDate(d.toISOString().split('T')[0]); }} className="p-3 hover:bg-white/5 rounded-xl text-slate-300"><Icons.ChevronRight /></button>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     {adminFilteredReservations.length === 0 ? (
-                      <div className="py-24 text-center bg-[#16325B] rounded-[2rem] border border-white/5">
-                        <div className="flex justify-center mb-4 text-slate-600"><Icons.Utensils /></div>
-                        <p className="text-slate-500 font-bold text-xs tracking-wider">目前尚無訂位</p>
-                      </div>
+                      <div className="py-24 text-center bg-[#16325B] rounded-[2rem] border border-white/5 text-slate-500 text-xs font-bold tracking-widest uppercase">目前尚無訂位</div>
                     ) : (
                       adminFilteredReservations.map(res => (
-                        <div key={res.id} className={`p-5 rounded-[2rem] border transition-all ${
-                          res.status === 'arrived' 
-                          ? 'bg-[#16325B]/50 border-green-900/50 opacity-80' 
-                          : 'bg-white border-slate-200'
-                        }`}>
+                        <div key={res.id} className={`p-5 rounded-[2rem] border btn-transition ${res.status === 'arrived' ? 'bg-[#16325B]/50 border-green-900/50 opacity-80' : 'bg-white border-slate-200'}`}>
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-4">
-                              <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center shadow-sm ${
-                                res.status === 'arrived' ? 'bg-green-800 text-green-100' : 'bg-brand text-white'
-                              }`}>
-                                <span className="text-[9px] font-bold opacity-60 uppercase">時間</span>
+                              <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center ${res.status === 'arrived' ? 'bg-green-800 text-green-100' : 'bg-brand text-white'}`}>
+                                <span className="text-[9px] font-bold opacity-60">時間</span>
                                 <span className="text-lg font-bold leading-none">{res.time}</span>
                               </div>
                               <div>
                                 <div className={`font-bold text-lg flex items-center gap-2 ${res.status === 'arrived' ? 'text-slate-300' : 'text-brand'}`}>
-                                  {res.name}
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                                    res.status === 'arrived' ? 'bg-slate-700 text-slate-400 border-slate-600' : 'bg-amber-50 text-amber-700 border-amber-100'
-                                  }`}>
-                                    {res.guests} 位
-                                  </span>
+                                  {res.name} {res.gender}
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${res.status === 'arrived' ? 'border-slate-600 bg-slate-700 text-slate-400' : 'border-amber-100 bg-amber-50 text-amber-700'}`}>{res.guests} 位</span>
                                 </div>
-                                <div className="text-slate-400 text-xs font-bold tracking-wider">{res.phone}</div>
+                                <div className="text-slate-400 text-xs font-bold">{res.phone}</div>
                               </div>
                             </div>
-                            
                             {res.status === 'arrived' ? (
-                              <div className="flex flex-col items-center text-green-500">
-                                 <Icons.CheckCircle2 />
-                                 <span className="text-[10px] font-bold mt-1">已入席</span>
-                              </div>
+                              <div className="flex flex-col items-center text-green-500"><Icons.CheckCircle2 /></div>
                             ) : (
-                              <button 
-                                onClick={() => handleCheckIn(res.id)}
-                                className="bg-slate-100 text-slate-400 hover:bg-green-600 hover:text-white p-3 rounded-xl transition-all flex flex-col items-center gap-1 group"
-                              >
-                                 <Icons.UserCheck />
-                                 <span className="text-[9px] font-bold">確認到達</span>
+                              <button onClick={() => handleCheckIn(res.id)} className="bg-slate-100 text-slate-400 hover:bg-green-600 hover:text-white p-3 rounded-xl btn-transition flex flex-col items-center gap-1">
+                                <Icons.Zap />
+                                <span className="text-[9px] font-bold">確認到達</span>
                               </button>
                             )}
                           </div>
-                          
                           <div className="flex justify-between items-center pl-2">
-                            {res.remarks ? (
-                               <div className="flex gap-2 items-center text-xs text-red-500 font-bold bg-red-50 px-3 py-1 rounded-lg max-w-[70%]">
-                                 <Icons.MessageSquare />
-                                 <span className="truncate">{res.remarks}</span>
-                               </div>
-                            ) : <span></span>}
-
-                            <div className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${
-                               res.status === 'arrived' ? 'bg-slate-700 text-slate-300' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                               {res.tableName}
-                             </div>
+                            <div className="flex gap-2 items-center text-xs text-red-500 font-bold max-w-[70%]">
+                              {res.remarks && <Fragment><Icons.Zap /><span className="truncate">{res.remarks}</span></Fragment>}
+                            </div>
+                            <div className={`px-4 py-1.5 rounded-full text-xs font-bold ${res.status === 'arrived' ? 'bg-slate-700 text-slate-300' : 'bg-amber-100 text-amber-800'}`}>
+                              分配：{res.tableName}
+                            </div>
                           </div>
                         </div>
                       ))
@@ -691,14 +464,13 @@
                   </div>
                 </div>
               )
-            )
-          }
+            )}
           </div>
 
           <footer className="fixed bottom-0 left-0 right-0 p-4 pointer-events-none flex justify-center">
-             <div className="bg-[#0F2849]/90 backdrop-blur-md text-white/20 text-[8px] px-6 py-2 rounded-full font-bold uppercase tracking-[0.2em] border border-white/5">
-               極禾鍋物職人 | 訂位管理系統
-             </div>
+            <div className="bg-[#0F2849]/90 backdrop-blur-md text-white/20 text-[8px] px-6 py-2 rounded-full font-bold uppercase tracking-[0.2em] border border-white/5">
+              JIHE HOTPOT | 14 TABLES SPLIT SYSTEM V9.0
+            </div>
           </footer>
         </div>
       );
