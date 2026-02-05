@@ -115,6 +115,7 @@
 
     const { useState, useEffect, useMemo, Fragment } = React;
 
+    // --- 輔助函式：取得日期字串 ---
     const getLocalYYYMMDD = (offsetDays = 0) => {
       const d = new Date();
       d.setDate(d.getDate() + offsetDays);
@@ -124,13 +125,14 @@
       return `${year}-${month}-${day}`;
     };
 
-    // --- 常數定義 ---
+    // --- 全域限制定義 ---
+    const MIN_DATE = getLocalYYYMMDD(1); // 明天
+    const MAX_DATE = getLocalYYYMMDD(7); // 七天後
     const DINING_TIME = 90;
     const CLEANING_TIME = 10;
     const TOTAL_CYCLE = DINING_TIME + CLEANING_TIME; 
     const LUNCH_END = "15:00", DINNER_END = "22:00";
     const LUNCH_WARN_START = "13:30", DINNER_WARN_START = "20:30"; 
-    const MIN_DATE = getLocalYYYMMDD(1), MAX_DATE = getLocalYYYMMDD(7);
 
     // --- 桌位定義 ---
     const tableCodes = ['A1', 'A2', 'A3', 'A5', 'A6', 'A7', 'A8', 'A9', 'B1', 'B2', 'B3', 'B5', 'B6', 'B7'];
@@ -207,7 +209,7 @@
         return null;
       };
 
-      // 3. 衍生資料 (計算過濾後名單與時段)
+      // 3. 衍生資料
       const adminFilteredReservations = useMemo(() => {
         return reservations
           .filter(r => r.date === adminDate)
@@ -235,8 +237,16 @@
       const handleCustomerBooking = async (e) => {
         e.preventDefault();
         if (!formData.time) return;
+        
+        // 二次檢查：程式強制限制日期
+        if (formData.date < MIN_DATE || formData.date > MAX_DATE) {
+          alert(`抱歉，請選擇預約範圍內的日期：\n${MIN_DATE} ~ ${MAX_DATE}`);
+          return;
+        }
+
         const cleanPhone = formData.phone.replace(/[\s-]/g, '');
         if (!/^09\d{8}$/.test(cleanPhone)) { alert("手機號碼格式錯誤"); return; }
+        
         setLoading(true);
         const tableIds = findAutoTable(parseInt(formData.guests), formData.date, formData.time, reservations);
         if (!tableIds) { alert("此時段座位已滿。"); setLoading(false); return; }
@@ -266,7 +276,7 @@
 
       const handleCheckIn = async (id) => {
         try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('reservations').doc(id).update({ status: 'arrived' }); }
-        catch (err) { alert("操作失敗"); }
+        catch (err) { alert("更新失敗"); }
       };
 
       const handleCancel = async (id) => {
@@ -311,15 +321,9 @@
       // 5. 元件：桌位選擇器
       const TableSelector = ({ selectedIds, onChange, date, time, excludeId }) => {
         const occupied = getOccupiedTableIds(date, time, reservations, excludeId);
-        
         const isTableDisabled = (t) => {
-          // 修復：如果這桌現在已經在暫選清單裡，絕對不要禁用它 (讓店長能點選反選)
           if (selectedIds.includes(t.id)) return false;
-
-          // 判斷是否被「其他訂單」佔用
           if (occupied.includes(t.id)) return true;
-
-          // 判斷層級衝突
           if (!t.isSub) {
              if (t.subs.some(sid => occupied.includes(sid))) return true;
              return t.subs.some(sid => selectedIds.includes(sid)); 
@@ -340,17 +344,7 @@
               const disabled = isTableDisabled(t);
               const selected = selectedIds.includes(t.id);
               return (
-                <button 
-                  key={t.id} 
-                  type="button" 
-                  disabled={disabled} 
-                  onClick={() => toggleTable(t.id)} 
-                  className={`py-2.5 rounded-lg text-[11px] font-black btn-transition border ${
-                    selected ? 'bg-gold text-brand border-gold shadow-[0_0_10px_rgba(253,230,138,0.3)] scale-105' : 
-                    disabled ? 'bg-slate-800 text-slate-600 border-slate-700 opacity-40 cursor-not-allowed' : 
-                    'bg-transparent text-slate-300 border-slate-600 hover:border-gold hover:text-gold'
-                  }`}
-                >
+                <button key={t.id} type="button" disabled={disabled} onClick={() => toggleTable(t.id)} className={`py-2.5 rounded-lg text-[11px] font-black btn-transition border ${selected ? 'bg-gold text-brand border-gold shadow-[0_0_10px_rgba(253,230,138,0.3)] scale-105' : disabled ? 'bg-slate-800 text-slate-600 border-slate-700 opacity-40 cursor-not-allowed' : 'bg-transparent text-slate-300 border-slate-600 hover:border-gold hover:text-gold'}`}>
                   {t.name}
                 </button>
               );
@@ -374,10 +368,10 @@
           <div className="max-w-xl mx-auto p-4 mt-4">
             {view === 'customer' ? (
               customerStep === 'form' ? (
-                /* --- 客人端區域 --- */
+                /* --- 客人端：預約表單 --- */
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
                   <div className="bg-[#16325B] p-6 rounded-3xl border border-white/10 shadow-xl text-left">
-                    <h1 className="text-xl font-bold mb-3 text-gold italic underline decoration-gold/30 text-shadow">線上預訂說明</h1>
+                    <h1 className="text-xl font-bold mb-3 text-gold italic underline decoration-gold/30">線上預訂說明</h1>
                     <ul className="space-y-2 text-sm text-slate-300 font-light">
                       <li>● 開放範圍：隔日起至 7 日內之訂位</li>
                       <li>● 人數限制：本系統僅接受 <span className="text-gold font-bold">4 人以下</span> 預約</li>
@@ -391,7 +385,23 @@
 
                   <div className="bg-white rounded-3xl p-6 text-brand shadow-lg text-left font-bold border-2 border-white/10">
                     <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="space-y-1"><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">預約日期</span><input type="date" className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-sm" value={formData.date} min={MIN_DATE} max={MAX_DATE} onChange={e => setFormData({...formData, date: e.target.value, time: ''})} /></div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">預約日期</span>
+                        <input 
+                          type="date" 
+                          className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-sm" 
+                          value={formData.date} 
+                          min={MIN_DATE} 
+                          max={MAX_DATE} 
+                          onChange={e => {
+                            let val = e.target.value;
+                            // 程式強制攔截與修正日期 (解決瀏覽器不支援 min/max 問題)
+                            if (val < MIN_DATE) val = MIN_DATE;
+                            if (val > MAX_DATE) val = MAX_DATE;
+                            setFormData({...formData, date: val, time: ''});
+                          }} 
+                        />
+                      </div>
                       <div className="space-y-1"><span className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-tighter">用餐人數</span><select className="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold text-lg text-brand" value={formData.guests} onChange={e => setFormData({...formData, guests: e.target.value, time: ''})}>{[1,2,3,4].map(n => <option key={n} value={n}>{n} 位</option>)}</select></div>
                     </div>
                     <div className="flex bg-slate-100 p-1 rounded-xl mb-4">{['lunch', 'dinner'].map(m => (<button key={m} onClick={() => {setActiveMeal(m); setFormData({...formData, time: ''})}} className={`flex-1 py-2 rounded-lg text-sm font-bold btn-transition ${activeMeal === m ? 'bg-brand text-white shadow-md' : 'text-slate-500'}`}>{m === 'lunch' ? '午餐時段' : '晚餐時段'}</button>))}</div>
@@ -412,13 +422,14 @@
                   </form>
                 </div>
               ) : (
+                /* --- 客人端：預約成功 --- */
                 <div className="animate-in zoom-in-95 fade-in duration-600 text-center pt-10">
-                  <div className="bg-white p-8 rounded-[3.5rem] shadow-2xl relative overflow-hidden text-brand border-2 border-white/10">
+                  <div className="bg-white p-8 rounded-[3.5rem] shadow-2xl relative overflow-hidden text-brand">
                     <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-brand via-gold to-accent" />
-                    <div className="mb-6 flex justify-center"><div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center text-green-600 shadow-inner"><Icons.CheckCircle2 size={56} /></div></div>
-                    <h1 className="text-2xl font-bold mb-2 italic tracking-tighter text-brand text-shadow">預約成功！</h1>
+                    <div className="mb-6 flex justify-center"><div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center text-green-600 shadow-inner"><Icons.CheckCircle2 /></div></div>
+                    <h1 className="text-2xl font-bold mb-2 italic tracking-tighter">預約成功！</h1>
                     <div className="bg-slate-50 rounded-[2.5rem] p-8 text-left space-y-5 mb-8 border border-slate-100 shadow-inner font-bold">
-                      <div className="flex justify-between items-center border-b border-white pb-3"><span>日期時間</span><span className="text-accent font-black tracking-tight">{lastBooking?.date} {lastBooking?.time}</span></div>
+                      <div className="flex justify-between items-center border-b border-white pb-3"><span>日期時間</span><span className="text-accent">{lastBooking?.date} {lastBooking?.time}</span></div>
                       <div className="flex justify-between items-center border-b border-white pb-3"><span>貴賓大名</span><span>{lastBooking?.name} {lastBooking?.gender}</span></div>
                       <div className="flex justify-between items-center"><span>用餐人數</span><span>{lastBooking?.guests} 位</span></div>
                     </div>
@@ -429,10 +440,10 @@
             ) : (
               /* --- 店長端區域 --- */
               !isAdminAuth ? (
-                <div className="animate-in fade-in zoom-in-95 duration-500 pt-20">
+                <div className="animate-in fade-in zoom-in-95 duration-500 pt-20 font-bold">
                   <div className="bg-[#16325B] p-10 rounded-[3rem] shadow-2xl border border-white/10 text-center">
-                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gold font-black shadow-lg shadow-brand/50"><Icons.Lock /></div>
-                    <h2 className="text-xl font-bold text-white mb-6 tracking-widest uppercase italic font-black text-gold">管理員登入</h2>
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gold"><Icons.Lock /></div>
+                    <h2 className="text-xl font-bold text-white mb-6 tracking-widest uppercase italic font-black">管理員登入</h2>
                     <form onSubmit={handleAdminLogin} className="space-y-6">
                       <input type="password" inputMode="numeric" pattern="[0-9]*" autoFocus className="w-full bg-brand text-white p-5 rounded-2xl text-center text-3xl font-bold tracking-[0.5em] outline-none border border-white/10 focus:border-gold" placeholder="••••" maxLength={4} value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
                       <button type="submit" className="w-full bg-amber-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg btn-active">進入管理看板</button>
@@ -440,24 +451,21 @@
                   </div>
                 </div>
               ) : (
-                /* --- 店長看板 (加入月曆切換功能) --- */
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 text-left">
                   <div className="flex flex-col gap-4 mb-2 bg-[#16325B] p-6 rounded-[2.5rem] shadow-xl border border-white/5">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-black text-gold tracking-tighter italic">預約管理儀表板</h2>
-                      <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 text-white rounded-full text-[11px] font-black shadow-lg shadow-emerald-900/40 btn-active btn-transition uppercase tracking-widest">
-                        <Icons.Plus /> 手動建立新訂單
+                      <h2 className="text-xl font-black text-gold tracking-tighter italic">今日預約儀表板</h2>
+                      <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 text-white rounded-full text-xs font-black shadow-lg shadow-emerald-900/40 btn-active btn-transition">
+                        <Icons.Plus /> 手動建立訂位
                       </button>
                     </div>
-                    
-                    {/* 日期選擇器：包含左右箭頭與隱藏式月曆輸入框 */}
+                    {/* 店長日期選擇與月曆 */}
                     <div className="flex items-center gap-2 bg-brand/50 p-2 rounded-2xl border border-white/5 shadow-inner">
                       <button onClick={() => { const d = new Date(adminDate); d.setDate(d.getDate() - 1); setAdminDate(d.toISOString().split('T')[0]); }} className="p-3 hover:bg-white/10 rounded-xl text-slate-300 btn-active btn-transition"><Icons.ChevronLeft /></button>
                       
                       <div className="flex-1 text-center font-bold text-sm text-white relative flex justify-center items-center gap-2 tracking-tighter font-mono italic underline decoration-gold/30 group">
                         <Icons.Calendar className="text-gold" />
                         <span>{adminDate}</span>
-                        {/* 隱藏但覆蓋整塊文字的月曆輸入框 */}
                         <input 
                            type="date"
                            className="absolute inset-0 opacity-0 cursor-pointer date-input-hidden"
@@ -467,9 +475,6 @@
                       </div>
 
                       <button onClick={() => { const d = new Date(adminDate); d.setDate(d.getDate() + 1); setAdminDate(d.toISOString().split('T')[0]); }} className="p-3 hover:bg-white/10 rounded-xl text-slate-300 btn-active btn-transition"><Icons.ChevronRight /></button>
-                    </div>
-                    <div className="text-center">
-                       <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest opacity-50">☝ 點擊日期可直接選擇月曆</span>
                     </div>
                   </div>
                   
@@ -521,7 +526,7 @@
                             </div>
                           </div>
 
-                          {/* 編輯桌位區域 (選完再按確定) */}
+                          {/* 編輯桌位區域 */}
                           {editingId === res.id && (
                             <div className="my-5 p-5 bg-slate-50 rounded-[2rem] border-2 border-gold animate-in zoom-in-95 shadow-inner relative z-[60]">
                               <span className="text-[10px] font-black text-slate-400 uppercase block mb-4 italic tracking-widest text-center">正在手動調整桌位分配 (可取消原本桌位)：</span>
@@ -531,7 +536,7 @@
                                   <span>已選取區域：{tempTableIds.length} 個</span>
                                   <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-brand uppercase font-black btn-transition">放棄修改</button>
                                 </div>
-                                <button onClick={() => handleUpdateTables(res.id, tempTableIds)} className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black text-xs btn-active shadow-lg transition-all border-b-4 border-emerald-800 uppercase tracking-widest shadow-emerald-500/20">確認並儲存新的桌位組合</button>
+                                <button onClick={() => handleUpdateTables(res.id, tempTableIds)} className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black text-xs btn-active shadow-lg transition-all border-b-4 border-emerald-800 uppercase tracking-widest">確認並儲存新的桌位組合</button>
                               </div>
                             </div>
                           )}
@@ -547,7 +552,7 @@
                     )}
                   </div>
 
-                  {/* 手動新增訂位彈窗 (大幅優化佈局與稱謂按鈕) */}
+                  {/* 手動新增訂位彈窗 */}
                   {showAddModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand/95 backdrop-blur-md animate-in fade-in duration-300 font-bold">
                       <div className="bg-[#16325B] w-full max-w-lg p-8 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/10 space-y-6 max-h-[90vh] overflow-y-auto relative">
@@ -557,12 +562,10 @@
                         </div>
                         
                         <form onSubmit={handleAdminCreateBooking} className="space-y-6">
-                          {/* 第一行：姓名與稱謂 (優化：按鈕變寬，顯示完整) */}
                           <div className="space-y-2">
                              <span className="text-[10px] text-slate-400 uppercase tracking-widest pl-1 font-black">貴賓姓名 / 稱謂</span>
                              <div className="flex gap-2">
                                 <input type="text" required placeholder="請輸入大名" className="flex-1 h-14 p-4 bg-brand border border-white/20 rounded-2xl outline-none text-base font-bold text-white focus:border-gold shadow-inner" value={adminForm.name} onChange={e => setAdminForm({...adminForm, name: e.target.value})} />
-                                
                                 <div className="flex bg-brand/80 p-1.5 rounded-2xl border border-white/10 shrink-0 h-14 w-[160px] shadow-2xl">
                                   {['先生', '小姐'].map(g => (
                                     <button 
@@ -578,7 +581,6 @@
                              </div>
                           </div>
                           
-                          {/* 第二行：人數(寬度縮小)與手機號碼 */}
                           <div className="flex gap-4">
                             <div className="w-[100px] shrink-0 space-y-2">
                                <span className="text-[10px] text-slate-400 uppercase tracking-widest pl-1 font-black">預約人數</span>
@@ -590,7 +592,6 @@
                             </div>
                           </div>
                           
-                          {/* 第三行：日期與時間 */}
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                <span className="text-[10px] text-slate-400 uppercase tracking-widest pl-1 font-black">用餐日期</span>
@@ -602,8 +603,7 @@
                             </div>
                           </div>
 
-                          {/* 桌位選取區 */}
-                          <div className="space-y-3 bg-brand/30 p-5 rounded-[2.5rem] border border-white/5 shadow-inner text-center">
+                          <div className="space-y-3 bg-brand/50 p-5 rounded-[2.5rem] border border-white/5 shadow-inner text-center">
                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic block mb-2">手動配位：</span>
                              <TableSelector selectedIds={adminForm.tableIds} date={adminForm.date} time={adminForm.time} onChange={(ids) => setAdminForm({...adminForm, tableIds: ids})} />
                              <div className="text-[10px] text-gold font-mono uppercase tracking-widest bg-brand p-3 rounded-[1.5rem] border border-white/5 shadow-inner mt-4 border-b-2 border-gold/10">
@@ -621,7 +621,7 @@
               )
             )}
           </div>
-          <footer className="fixed bottom-0 left-0 right-0 p-5 pointer-events-none flex justify-center"><div className="bg-brand/90 backdrop-blur-md text-white/20 text-[9px] px-8 py-2.5 rounded-full font-bold border border-white/5 tracking-[0.3em] uppercase shadow-2xl tracking-tighter">極禾鍋物職人 | 北市延平店管理系統</div></footer>
+          <footer className="fixed bottom-0 left-0 right-0 p-5 pointer-events-none flex justify-center"><div className="bg-brand/90 backdrop-blur-md text-white/20 text-[9px] px-8 py-2.5 rounded-full font-bold border border-white/5 tracking-[0.3em] uppercase shadow-2xl tracking-tighter">極禾鍋物職人</div></footer>
         </div>
       );
     }
